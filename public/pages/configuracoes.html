@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações - StockCtrl</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/estoque-moderno.css">
+    <link rel="stylesheet" href="../css/logo-animada.css">
+    <link rel="stylesheet" href="../css/configuracoes.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo-container">
+            <a href="/dashboard" class="logo-link">
+                <span class="logo-sc">SC</span>
+                <span id="company-name-sidebar" class="logo-company-name">STOCKCTRL</span>
+            </a>
+        </div>
+        <nav>
+            <a href="/dashboard"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="/estoque"><i class="fas fa-boxes-stacked"></i> Estoque</a>
+            <a href="/usuarios"><i class="fas fa-users"></i> Usuários</a>
+            <a href="/logs"><i class="fas fa-history"></i> Logs de Atividade</a>
+            <a href="/configuracoes" class="active"><i class="fas fa-cog"></i> Configurações</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <img id="user-avatar" src="" alt="Avatar">
+                <span id="user-name"></span>
+            </div>
+            <a href="#" id="logout-btn" title="Sair"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="main-header">
+            <h1 class="premium-title">Configurações</h1>
+        </div>
+
+        <div class="config-grid">
+            <!-- Coluna da Esquerda: Perfil e Empresa -->
+            <div class="config-col">
+                <!-- Seção Meu Perfil -->
+                <div class="glass-panel">
+                    <h2 class="panel-title">Meu Perfil</h2>
+                    <div class="panel-content">
+                        <div class="avatar-section">
+                            <img id="avatar-preview" src="https://i.pravatar.cc/100" alt="Avatar">
+                            <label for="avatar-upload" class="btn-secondary">
+                                <span>Mudar Foto</span>
+                                <input type="file" id="avatar-upload" name="avatar" class="hidden" accept="image/*">
+                            </label>
+                        </div>
+                        <form id="form-perfil">
+                            <div class="form-group">
+                                <label for="profile_full_name">Nome Completo</label>
+                                <input type="text" id="profile_full_name" class="neo-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="profile_username">Nome de Usuário</label>
+                                <input type="text" id="profile_username" class="neo-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="profile_email">Email</label>
+                                <input type="email" id="profile_email" class="neo-input" required>
+                            </div>
+                            <button type="submit" class="btn-submit">Salvar Perfil</button>
+                        </form>
+                        <hr class="form-divider">
+                        <h3 class="form-subtitle">Alterar Senha</h3>
+                        <form id="form-senha">
+                            <div class="form-group">
+                                <label for="password_new">Nova Senha</label>
+                                <input type="password" id="password_new" class="neo-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="password_confirm">Confirmar Nova Senha</label>
+                                <input type="password" id="password_confirm" class="neo-input" required>
+                            </div>
+                            <button type="submit" class="btn-submit">Alterar Senha</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Seção Configurações da Empresa (visível para admins) -->
+                <div id="section-empresa" class="glass-panel mt-6 hidden">
+                    <h2 class="panel-title">Configurações da Empresa</h2>
+                    <div class="panel-content">
+                         <div class="avatar-section">
+                            <img id="logo-preview" src="" alt="Logo" class="is-logo">
+                            <label for="logo-upload" class="btn-secondary">
+                                <span>Mudar Logo</span>
+                                <input type="file" id="logo-upload" name="logo" class="hidden" accept="image/*">
+                            </label>
+                        </div>
+                        <form id="form-empresa">
+                            <div class="form-group">
+                                <label for="company_nome">Nome da Empresa</label>
+                                <input type="text" id="company_nome" name="nome" class="neo-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="company_nome_exibicao">Nome de Exibição (Sidebar)</label>
+                                <input type="text" id="company_nome_exibicao" name="nome_exibicao" class="neo-input">
+                            </div>
+                            <button type="submit" class="btn-submit">Salvar Empresa</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna da Direita: Regras e Locais -->
+            <div class="config-col">
+                <!-- Seção Regras de Produto -->
+                <div id="section-regras" class="glass-panel hidden">
+                     <h2 class="panel-title">Regras de Produto</h2>
+                     <div class="panel-content">
+                        <form id="form-regras-produto">
+                            <div class="rule-item">
+                                <div class="rule-text">
+                                    <label for="allow_duplicate_names">Permitir Nomes Duplicados</label>
+                                    <p>Permite cadastrar produtos com nomes idênticos.</p>
+                                </div>
+                                <label class="switch"><input type="checkbox" id="allow_duplicate_names"><span class="slider"></span></label>
+                            </div>
+                            <button type="submit" class="btn-submit mt-4">Salvar Regras</button>
+                        </form>
+                     </div>
+                </div>
+                
+                <!-- Seção Locais de Estoque -->
+                <div id="section-locais" class="glass-panel mt-6 hidden">
+                    <h2 class="panel-title">Locais de Estoque</h2>
+                    <div class="panel-content">
+                        <form id="form-locations">
+                            <div id="locations-list" class="space-y-4 mb-4">
+                                <!-- Locais existentes -->
+                            </div>
+                            <button type="button" id="add-location-btn" class="btn-secondary w-full">Adicionar Local</button>
+                            <button type="submit" class="btn-submit mt-4">Salvar Locais</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Seção de Notificações -->
+                <div id="section-notificacoes" class="glass-panel mt-6 hidden">
+                    <h2 class="panel-title">Notificações por E-mail</h2>
+                    <div class="panel-content">
+                        <form id="form-notificacoes">
+                            <div class="rule-item">
+                                <div class="rule-text">
+                                    <label for="notifications_enabled">Receber E-mails de Atividade</label>
+                                    <p>Envia um e-mail para cada ação crítica no sistema.</p>
+                                </div>
+                                <label class="switch"><input type="checkbox" id="notifications_enabled"><span class="slider"></span></label>
+                            </div>
+                            <div class="form-group mt-4">
+                                <label for="notification_email">E-mail para Notificações</label>
+                                <input type="email" id="notification_email" class="neo-input" placeholder="seu-email@dominio.com">
+                            </div>
+                            <button type="submit" class="btn-submit mt-4">Salvar Notificações</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Container para Notificações e Loader -->
+    <div id="toast-container"></div>
+    <div id="loader-overlay" class="hidden"><div class="loader"></div></div>
+
+    <!-- Scripts -->
+    <script src="../js/layout.js"></script>
+    <script src="../js/configuracoes.js"></script>
+</body>
+</html>
+<style>
+    .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
+    .config-col { display: flex; flex-direction: column; gap: 24px; }
+    .panel-title { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700; color: white; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--color-glass-border); }
+    .panel-content { display: flex; flex-direction: column; }
+    .avatar-section { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px; }
+    .avatar-section img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-glass-border); }
+    .avatar-section img.is-logo { border-radius: 12px; background-color: rgba(0,0,0,0.2); padding: 5px; }
+    .form-subtitle { font-family: 'Orbitron', sans-serif; font-size: 14px; text-transform: uppercase; margin-bottom: 16px; text-align: center; }
+    .form-divider { border-color: var(--color-glass-border); margin: 24px 0; }
+    .rule-item { display: flex; justify-content: space-between; align-items: center; }
+    .rule-text p { font-size: 12px; color: #aaa; }
+    .btn-secondary { background-color: #222; color: #999; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-weight: 600; text-align: center; }
+    .btn-secondary:hover { background-color: #333; color: white; }
+    .space-y-4 > *:not([hidden]) ~ *:not([hidden]) { margin-top: 1rem; }
+    .mt-4 { margin-top: 1rem; } .mt-6 { margin-top: 1.5rem; }
+    .w-full { width: 100%; }
+</style> 

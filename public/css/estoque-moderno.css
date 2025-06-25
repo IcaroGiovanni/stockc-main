@@ -1,0 +1,918 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
+
+/* --- VARIÁVEIS DE COR --- */
+:root {
+    --color-background: #0D0D0D;
+    --color-text: #E0E0E0;
+    --color-accent: #facc15; /* Amarelo/Dourado */
+    --color-accent-dark: #eab308;
+    --color-accent-light: #fde047;
+    --color-accent-text: #111827;
+    --color-glass-bg: rgba(30, 41, 59, 0.4);
+    --color-glass-border: rgba(255, 255, 255, 0.1);
+    --color-sidebar-bg: #111827;
+    --color-success: #22c55e;
+    --color-error: #ef4444;
+    --color-bg-modal: rgba(30, 30, 30, 0.5);
+    --color-border: rgba(255, 255, 255, 0.1);
+    --color-text-secondary: #94a3b8;
+}
+
+/* 1. RESET E ESTILO GERAL */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Fundo animado sutil */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: scroll-background 20s linear infinite;
+}
+
+@keyframes scroll-background {
+  from { background-position: 0 0; }
+  to { background-position: 40px 40px; }
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* 2. SIDEBAR */
+.sidebar {
+  background: var(--color-sidebar-bg);
+  width: 260px;
+  min-height: 100vh;
+  padding: 25px 20px;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  border-right: 1px solid var(--color-glass-border);
+}
+
+.sidebar .logo-container {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-glass-border);
+}
+
+.sidebar .logo-container .logo-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  padding: 10px 0;
+  gap: 8px;
+}
+
+.sidebar .logo-sc {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 1.8rem;
+  color: var(--color-accent);
+}
+
+.sidebar .logo-company-name {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 500;
+  font-size: 1.1rem;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px; /* Leve ajuste vertical */
+}
+
+.sidebar nav {
+  flex-grow: 1;
+}
+
+.sidebar nav a {
+  color: #94a3b8;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 8px 0;
+  padding: 12px 15px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  border-left: 3px solid transparent;
+}
+
+.sidebar nav a:hover {
+  color: #ffffff;
+  background-color: rgba(250, 204, 21, 0.05);
+}
+
+.sidebar nav a.active {
+  color: var(--color-accent);
+  background-color: rgba(250, 204, 21, 0.1);
+  font-weight: 600;
+  border-left: 3px solid var(--color-accent);
+}
+
+.sidebar nav a i {
+  width: 22px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.sidebar .sidebar-footer {
+  padding: 15px 20px;
+  margin-top: auto;
+  border-top: 1px solid var(--color-glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.user-profile-widget {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  flex-shrink: 1;
+}
+
+.user-profile-widget img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.user-profile-widget span {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ajusta o botão de sair para ser apenas um ícone */
+.sidebar-footer #logout-btn {
+  font-size: 20px;
+  color: #9ca3af;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-footer #logout-btn:hover {
+  color: var(--color-error);
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+/* 3. CONTEÚDO PRINCIPAL */
+.main-content {
+  margin-left: 260px;
+  padding: 30px 40px;
+}
+
+/* Estilo "Glassmorphism" para painéis */
+.glass-panel {
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-glass-border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+}
+
+/* Cabeçalho principal */
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 12px 0;
+}
+
+.premium-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+}
+
+.item-count {
+  font-family: 'Orbitron', sans-serif;
+  background-color: rgba(250, 204, 21, 0.15);
+  color: var(--color-accent);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  margin-left: 16px;
+}
+
+/* Controles (Busca) */
+.controls-container {
+  margin-bottom: 24px;
+}
+
+.search-container {
+  position: relative;
+  max-width: 400px;
+}
+
+.search-container i {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-accent);
+}
+
+.neo-input {
+  background-color: rgba(0,0,0,0.3);
+  border: 1px solid var(--color-glass-border);
+  border-radius: 10px;
+  color: var(--color-text);
+  padding: 12px 12px 12px 40px;
+  width: 100%;
+  font-size: 15px;
+  transition: all 0.2s ease;
+}
+
+.neo-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 15px rgba(250, 204, 21, 0.2);
+}
+
+/* Tabela */
+.table-container {
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead {
+  background-color: rgba(250, 204, 21, 0.1);
+}
+
+th {
+  padding: 14px 20px;
+  text-align: left;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-accent-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+th[data-sort-key] {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+th[data-sort-key]:hover {
+  background-color: rgba(250, 204, 21, 0.2);
+}
+
+th .sort-icon {
+  margin-left: 8px;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+th:hover .sort-icon {
+  opacity: 1;
+}
+
+tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+td {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-glass-border);
+  font-size: 14px;
+}
+
+td.product-name {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.actions-container {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.actions-container button, .btn-icon {
+    background: transparent;
+    border: none;
+    color: #a7a7a7;
+    cursor: pointer;
+    font-size: 16px; /* Aumenta o tamanho do ícone */
+    margin: 0 6px;   /* Adiciona espaçamento horizontal */
+    padding: 5px;
+    transition: all 0.2s ease-in-out;
+}
+
+.actions-container button:hover, .btn-icon:hover {
+    color: #ffffff;
+    transform: scale(1.1); /* Efeito de zoom no hover */
+}
+
+/* Specific button colors on hover */
+.btn-edit:hover, .btn-icon.btn-edit:hover {
+    color: var(--color-accent);
+}
+
+.btn-delete:hover, .btn-icon.btn-delete:hover {
+    color: var(--color-error);
+}
+
+.btn-qrcode:hover {
+    color: #3b82f6; /* Azul para QR Code */
+}
+
+/* Botão Flutuante */
+.fab-add {
+  position: fixed;
+  bottom: 30px;
+  right: 40px;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
+  color: var(--color-accent-text);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 8px 25px rgba(250, 204, 21, 0.3);
+  transition: all 0.3s ease;
+  z-index: 150;
+}
+
+.fab-add:hover {
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 12px 35px rgba(250, 204, 21, 0.4);
+}
+
+.btn-confirm:hover {
+    filter: brightness(1.2);
+}
+
+/* --- MODAIS: REESCRITA COMPLETA E FIEL --- */
+
+/* 1. FUNDO OVERLAY */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 15, 15, 0.6); /* Preto profundo com transparência */
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+}
+.modal-overlay:not(.hidden) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 2. PAINEL DE VIDRO PRINCIPAL */
+.modal-content {
+    background-color: var(--color-bg-modal);
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 650px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    position: relative;
+    border: 1px solid var(--color-border);
+    transform: scale(0.95);
+    transition: transform 0.3s ease-in-out;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.modal-overlay:not(.hidden) .modal-content {
+    transform: scale(1);
+}
+
+/* 3. CABEÇALHO E TÍTULO */
+.modal-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    margin-bottom: 24px;
+}
+.modal-header .premium-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-accent-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.close-button {
+    position: absolute;
+    top: 50%;
+    right: -15px;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 26px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.close-button:hover {
+    color: white;
+    transform: translateY(-50%) rotate(90deg);
+}
+
+/* 4. FORMULÁRIO E INPUTS */
+.form-group {
+    margin-bottom: 18px;
+}
+.form-group > label {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #aaa;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+/* Título da seção de localizações */
+.form-group > label:not([for]) {
+    text-align: center;
+    font-size: 12px;
+    color: var(--color-accent);
+    margin-top: 24px;
+    margin-bottom: 16px;
+}
+.locations-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.locations-grid .form-group {
+    text-align: center;
+}
+.locations-grid .form-group label {
+    color: #aaa;
+}
+#product-name.neo-input,
+.locations-grid .neo-input {
+    padding: 12px 16px;
+    background-color: #0f0f0f;
+    border: 1px solid #333;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: left;
+}
+.locations-grid .neo-input {
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+/* 5. BOTÃO PRINCIPAL */
+.btn-submit {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #facc15, #eab308); /* Gradiente amarelo */
+    color: #0f0f0f; /* Texto preto */
+    font-weight: 700; /* Negrito */
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(250, 204, 21, 0.25);
+}
+
+/* 6. CONTEÚDO MODAL QR CODE */
+#qrcode-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    margin-bottom: 20px;
+    background-color: white;
+    border-radius: 12px;
+}
+.qr-product-name {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ccc;
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 7. MODAL DE CONFIRMAÇÃO */
+.confirm-modal-text {
+    color: #ccc;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    text-align: center;
+}
+.confirm-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.btn-confirm, .btn-cancel {
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+.btn-cancel {
+    background-color: #222;
+    color: #999;
+}
+.btn-cancel:hover {
+    background-color: #333;
+    color: white;
+}
+.btn-confirm {
+    background-color: var(--color-error);
+    color: white;
+}
+
+/* --- Notificações "Toast" --- */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-radius: 12px;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+    transform: translateX(120%);
+    animation: slideIn 0.5s forwards, slideOut 0.5s 4.5s forwards;
+}
+
+.toast i {
+    margin-right: 12px;
+    font-size: 1.2rem;
+}
+
+.toast.success {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.5), rgba(22, 163, 74, 0.7));
+    border-left: 5px solid var(--color-success);
+}
+
+.toast.error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.5), rgba(220, 38, 38, 0.7));
+    border-left: 5px solid var(--color-error);
+}
+
+@keyframes slideIn {
+    to { transform: translateX(0); }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); }
+    to { transform: translateX(120%); }
+}
+
+/* --- Loader Overlay --- */
+#loader-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(13, 13, 13, 0.6);
+    backdrop-filter: blur(5px);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loader {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 5px solid rgba(255,255,255,0.2);
+    border-top-color: var(--color-accent);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Estilos para o Modal de QR Code Premium */
+.modal-content-lg {
+  background-color: var(--color-background-card);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  width: 90%;
+  max-width: 800px; /* Maior que o modal padrão */
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh; /* Impede o modal de estourar a altura da tela */
+}
+
+.qr-modal-body {
+  display: flex;
+  flex-direction: row;
+  padding: 1.5rem;
+  gap: 2rem;
+  flex-grow: 1;
+  overflow-y: auto; /* Adiciona scroll se o conteúdo estourar */
+}
+
+.qr-preview-column {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-background);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid var(--color-border-light);
+  min-width: 0; /* Ajuda o flexbox a encolher corretamente */
+  min-height: 0; /* Estabilidade para Flexbox */
+  overflow: auto; /* ESSENCIAL: Cria scroll DENTRO da coluna */
+}
+
+.qr-print-preview-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease-in-out;
+}
+
+.qr-print-preview-area.layout-side-by-side {
+  flex-direction: row;
+  align-items: center;
+}
+
+.qrcode-container {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.qr-info-preview {
+  text-align: left;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: var(--color-background-dark);
+  min-width: 200px;
+}
+
+.qr-info-product-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--color-accent);
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.5rem;
+}
+.qr-info-preview p {
+  margin-bottom: 0.5rem;
+}
+.qr-info-preview p b {
+  color: var(--color-text-light);
+}
+
+
+.qr-controls-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.control-group {
+  background: var(--color-background-dark);
+  padding: 1rem;
+  border-radius: 12px;
+}
+
+.control-group > label {
+  display: block;
+  font-weight: bold;
+  color: var(--color-accent);
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.form-group-inline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.slider {
+  -webkit-appearance: none;
+  width: 120px;
+  height: 8px;
+  border-radius: 5px;
+  background: var(--color-border-light); /* CORRIGIDO: Cor mais clara para o fundo */
+  outline: none;
+  opacity: 0.9;
+  transition: opacity .2s;
+}
+.slider:hover {
+  opacity: 1;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  cursor: pointer;
+}
+
+.color-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 40px;
+  height: 25px;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+.color-input::-webkit-color-swatch {
+  border-radius: 5px;
+  border: 1px solid var(--color-border-light);
+}
+
+.segmented-control {
+  display: flex;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.btn-segment {
+  flex: 1;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+.btn-segment.active {
+  background-color: var(--color-accent);
+  color: var(--color-background-dark);
+  font-weight: bold;
+}
+.btn-segment:not(.active):hover {
+    background-color: var(--color-border);
+}
+
+
+.action-buttons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.action-buttons-grid .btn {
+  width: 100%;
+}
+
+
+@media (max-width: 768px) {
+  .qr-modal-body {
+    flex-direction: column;
+  }
+  .modal-content-lg {
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* Fim dos estilos do Modal de QR Code */
+
+.toast {
+  background-color: #2d3748;
+}
+
+/* Estilo para agrupar inputs lado a lado no modal */
+.form-group-horizontal {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group-horizontal label {
+    margin-bottom: 0.75rem;
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    text-align: center;
+}
+
+.form-group-horizontal .input-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.form-group-horizontal .input-row .quantity-input {
+    flex: 1;
+}
+
+.form-group-horizontal .input-row .sub-location-input {
+    flex: 2;
+}
+
+/* Container para as localizações no modal */
+#locations-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+
+/* Estilos para Tabela de Inventário --- */
+.table-container {
+    background-color: var(--color-bg-secondary);
+}
