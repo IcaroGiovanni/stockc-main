@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const password = document.getElementById('password').value;
 
     try {
-      const response = await fetch('http://localhost:3000/login', {
+      const response = await fetch('https://stockctrl.space/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Solução de contorno: buscar dados da empresa separadamente
         // já que o payload do token não está confiável no momento.
         try {
-          const empresaResponse = await fetch('/api/empresa', {
+          const empresaResponse = await fetch('https://stockctrl.space/api/empresa', {
             headers: { 'Authorization': `Bearer ${data.token}` }
           });
           const empresaData = await empresaResponse.json();
