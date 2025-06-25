@@ -129,16 +129,16 @@ const upload = multer({
     }
 });
 
-// Configuração da conexão com o MySQL
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'stock_control',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-}).promise();
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'stock_control',
+    port: process.env.DB_PORT || 3306,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+  }).promise();
 
 pool.query('SELECT 1').then(() => {
     console.log('Conexão com MySQL (pool) funcionando!');
