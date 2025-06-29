@@ -36,8 +36,7 @@
     "db:restore": "node scripts/restore.js",
     "db:optimize": "node database-optimization.js",
     "health:check": "curl -f http://localhost:3000/health || exit 1",
-    "precommit": "npm run lint:staged && npm test",
-    "prepare": "husky install"
+    "precommit": "npm run lint:staged && npm test"
   },
   "keywords": [
     "estoque",
