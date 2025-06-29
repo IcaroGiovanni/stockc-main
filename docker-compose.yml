@@ -20,8 +20,8 @@ services:
       - db
     volumes:
       - ./public/uploads:/app/public/uploads
-      - ./logs:/app/logs 
-       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./logs:/app/logs
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - stockctrl-network
     restart: unless-stopped
