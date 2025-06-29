@@ -1,3 +1,4 @@
+console.log('[DEBUG] estoque.js carregado');
 document.addEventListener('DOMContentLoaded', () => {
   // --- Seletores de Elementos ---
   const fabAddProduct = document.getElementById('fab-add-product');
@@ -204,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtered = allProducts.filter(p => p.name.toLowerCase().includes(searchTerm));
     sortProducts(); // Garante que a ordenação seja aplicada antes de renderizar
     renderTable(filtered);
+    totalValueEl.textContent = filtered.length;
   };
 
   // --- Funções de Modal ---
@@ -218,14 +220,27 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (product) {
       console.log('[DEBUG] Preenchendo formulário com dados do produto:', product);
+      console.log('[DEBUG] product.locations:', product.locations);
+      console.log('[DEBUG] product.quantities_by_location:', product.quantities_by_location);
       
-      // Preencher campos básicos
-      document.getElementById('product-id').value = product.id || '';
-      document.getElementById('product-name').value = product.name || '';
+      // Converter locations array para quantities_by_location object
+      let quantities = {};
+      if (product.quantities_by_location) {
+        // Se já existe quantities_by_location, usar diretamente
+        quantities = product.quantities_by_location;
+        console.log('[DEBUG] Usando quantities_by_location existente:', quantities);
+      } else if (product.locations && Array.isArray(product.locations)) {
+        // Converter locations array para quantities_by_location
+        console.log('[DEBUG] Convertendo locations array para quantities_by_location');
+        product.locations.forEach(loc => {
+          quantities[String(loc.location_id)] = {
+            quantity: loc.quantity || 0,
+            sub_location: loc.sub_location || ''
+          };
+        });
+      }
       
-      // Preencher localizações
-      const quantities = product.quantities_by_location || {};
-      console.log('[DEBUG] Quantities by location:', quantities);
+      console.log('[DEBUG] Quantities by location convertido:', quantities);
       renderLocations(quantities);
     } else {
       console.log('[DEBUG] Modal aberto para novo produto');
@@ -527,6 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       companyLogoUrl = empresa.logo || null;
       allProducts = products;
+      totalValueEl.textContent = allProducts.length;
 
       // Verifica se há um produto para editar na URL
       const urlParams = new URLSearchParams(window.location.search);

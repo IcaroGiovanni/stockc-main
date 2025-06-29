@@ -9,6 +9,11 @@
     <link rel="stylesheet" href="../css/logo-animada.css">
 </head>
 <body>
+    <!-- Botão Hamburger para Mobile -->
+    <button class="mobile-menu-toggle hidden" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="logo-container">
@@ -80,6 +85,18 @@
                 </div>
             </div>
 
+            <!-- Gráfico de Ações por Dia -->
+            <div class="chart-card glass-panel">
+                <h2 class="premium-title-sm">Ações por Dia</h2>
+                <canvas id="actionsChart" height="120"></canvas>
+            </div>
+
+            <!-- Calendário de Logs/Atividades -->
+            <div class="calendar-card glass-panel">
+                <h2 class="premium-title-sm">Calendário de Atividades</h2>
+                <div id="activity-calendar"></div>
+            </div>
+
             <!-- Tabela de Produtos Recentes -->
             <div class="table-container-dashboard glass-panel">
                 <h2 class="premium-title-sm">Atividade Recente</h2>
@@ -104,18 +121,293 @@
     </main>
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="../js/layout.js"></script>
     <script src="../js/dashboard.js"></script>
 </body>
 </html>
 <style>
-    .grid-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
-    .stat-card { grid-column: span 1; display: flex; justify-content: space-between; align-items: center; }
-    .stat-title { font-family: 'Inter', sans-serif; font-size: 14px; color: #aaa; margin-bottom: 4px; }
-    .stat-value { font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: white; }
-    .stat-icon-wrapper { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background-color: var(--icon-bg); color: white; font-size: 20px; }
-    .table-container-dashboard { grid-column: span 4; padding: 24px; }
-    .premium-title-sm { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700; color: white; margin-bottom: 20px; }
+    .grid-dashboard {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        grid-template-rows: auto auto auto;
+    }
+    .stat-card {
+        grid-column: span 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #181c24;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px #0002;
+    }
+    .stat-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        color: #aaa;
+        margin-bottom: 4px;
+    }
+    .stat-value {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+    }
+    .stat-icon-wrapper {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--icon-bg);
+        color: white;
+        font-size: 20px;
+    }
+    .chart-card {
+        grid-column: span 2;
+        background: #181c24;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 8px #0002;
+        min-width: 0;
+    }
+    .calendar-card {
+        grid-column: span 2;
+        background: #181c24;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 8px #0002;
+        min-width: 0;
+    }
+    .table-container-dashboard {
+        grid-column: span 4;
+        padding: 24px;
+        background: #181c24;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px #0002;
+    }
+    .premium-title-sm {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        color: #fbbf24;
+        margin-bottom: 20px;
+    }
     .table-wrapper { max-height: 400px; overflow-y: auto; }
     .text-center { text-align: center; }
+    #activity-calendar {
+        width: 100%;
+        min-height: 220px;
+        background: #23283a;
+        border-radius: 12px;
+        padding: 16px;
+        color: #fff;
+        font-family: 'Inter', sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .calendar-day {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        margin: 2px;
+        border-radius: 50%;
+        line-height: 32px;
+        text-align: center;
+        font-weight: 600;
+        background: #23283a;
+        color: #fff;
+        transition: background 0.2s, color 0.2s;
+    }
+    .calendar-day.active-yellow {
+        background: #fbbf24;
+        color: #23283a;
+    }
+    .calendar-day.active-blue {
+        background: #3b82f6;
+        color: #fff;
+    }
+    .calendar-day.today {
+        border: 2px solid #fbbf24;
+    }
+    
+    /* ===== RESPONSIVIDADE MOBILE ===== */
+    
+    /* Tablets */
+    @media (max-width: 1024px) {
+        .grid-dashboard {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .stat-card {
+            grid-column: span 1;
+        }
+        
+        .chart-card, .calendar-card {
+            grid-column: span 2;
+        }
+        
+        .table-container-dashboard {
+            grid-column: span 2;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+        }
+        
+        .stat-icon-wrapper {
+            width: 45px;
+            height: 45px;
+            font-size: 18px;
+        }
+    }
+    
+    /* Tablets pequenos */
+    @media (max-width: 768px) {
+        .grid-dashboard {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        
+        .stat-card {
+            grid-column: span 1;
+            padding: 16px;
+        }
+        
+        .chart-card, .calendar-card {
+            grid-column: span 1;
+            padding: 16px;
+        }
+        
+        .table-container-dashboard {
+            grid-column: span 1;
+            padding: 16px;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+        }
+        
+        .stat-title {
+            font-size: 12px;
+        }
+        
+        .stat-icon-wrapper {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+        }
+        
+        .premium-title-sm {
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .table-wrapper {
+            max-height: 300px;
+        }
+        
+        #activity-calendar {
+            min-height: 180px;
+            padding: 12px;
+        }
+        
+        .calendar-day {
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            font-size: 12px;
+        }
+    }
+    
+    /* Smartphones */
+    @media (max-width: 480px) {
+        .grid-dashboard {
+            gap: 10px;
+        }
+        
+        .stat-card {
+            padding: 12px;
+            flex-direction: column;
+            text-align: center;
+            gap: 8px;
+        }
+        
+        .chart-card, .calendar-card {
+            padding: 12px;
+        }
+        
+        .table-container-dashboard {
+            padding: 12px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+        }
+        
+        .stat-title {
+            font-size: 11px;
+        }
+        
+        .stat-icon-wrapper {
+            width: 35px;
+            height: 35px;
+            font-size: 14px;
+        }
+        
+        .premium-title-sm {
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .table-wrapper {
+            max-height: 250px;
+        }
+        
+        #activity-calendar {
+            min-height: 150px;
+            padding: 8px;
+        }
+        
+        .calendar-day {
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            font-size: 11px;
+            margin: 1px;
+        }
+    }
+    
+    /* Smartphones muito pequenos */
+    @media (max-width: 360px) {
+        .stat-value {
+            font-size: 16px;
+        }
+        
+        .stat-title {
+            font-size: 10px;
+        }
+        
+        .stat-icon-wrapper {
+            width: 30px;
+            height: 30px;
+            font-size: 12px;
+        }
+        
+        .premium-title-sm {
+            font-size: 13px;
+        }
+        
+        .calendar-day {
+            width: 22px;
+            height: 22px;
+            line-height: 22px;
+            font-size: 10px;
+        }
+    }
 </style> 

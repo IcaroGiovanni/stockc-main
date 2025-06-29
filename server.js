@@ -59,10 +59,12 @@ async function sendEmail(mailOptions) {
 const uploadsDir = path.join(__dirname, 'public/uploads');
 const avatarsDir = path.join(uploadsDir, 'avatars');
 const logosDir = path.join(uploadsDir, 'logos');
+const productsDir = path.join(uploadsDir, 'products');
 
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 if (!fs.existsSync(avatarsDir)) fs.mkdirSync(avatarsDir);
 if (!fs.existsSync(logosDir)) fs.mkdirSync(logosDir);
+if (!fs.existsSync(productsDir)) fs.mkdirSync(productsDir);
 
 const port = 3000;
 const saltRounds = 10; 
@@ -105,7 +107,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 // --- Configuração do Multer para Upload de Arquivos ---
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const dest = file.fieldname === 'avatar' ? 'public/uploads/avatars' : 'public/uploads/logos';
+        const dest = file.fieldname === 'avatar' ? 'public/uploads/avatars' : file.fieldname === 'logo' ? 'public/uploads/logos' : 'public/uploads/products';
         cb(null, dest);
     },
     filename: function (req, file, cb) {
@@ -448,19 +450,18 @@ app.get('/api/products/:id', authenticateToken, async (req, res) => {
             WHERE pl.product_id = ? AND pl.empresa_id = ?
         `, [id, empresa_id]);
         
-        // Converter localizações para o formato quantities_by_location (chave string)
-        const quantities_by_location = {};
-        locations.forEach(loc => {
-            quantities_by_location[String(loc.location_id)] = {
-                quantity: loc.quantity || 0,
-                sub_location: loc.sub_location || ''
-            };
-        });
+        // Converter localizações para o formato locations (array) - compatível com frontend
+        const locationsArr = locations.map(loc => ({
+            location_id: loc.location_id,
+            name: loc.location_name || 'Sem localização',
+            quantity: loc.quantity || 0,
+            sub_location: loc.sub_location || ''
+        }));
         
         // Montar resposta final
         const productWithLocations = {
             ...sanitizeProduct(product),
-            quantities_by_location
+            locations: locationsArr
         };
         
         res.json(productWithLocations);
@@ -578,7 +579,7 @@ app.get('/api/empresa', authenticateToken, async (req, res) => {
         }
         
         const empresa = empresaRows[0];
-        
+        empresa.logo = empresa.logo_url; // Compatibilidade com frontend
         // Buscar localizações da empresa
         const [locationRows] = await pool.query(
             'SELECT id, name FROM locations WHERE empresa_id = ? ORDER BY name ASC',
@@ -693,7 +694,16 @@ app.get('/api/dashboard-stats', authenticateToken, async (req, res) => {
         const [[{ logs_today }]] = await pool.query("SELECT COUNT(id) as logs_today FROM activity_logs WHERE empresa_id = ? AND DATE(created_at) = CURDATE()", [empresa_id]);
         const [[{ total_users }]] = await pool.query('SELECT COUNT(id) as total_users FROM users WHERE empresa_id = ?', [empresa_id]);
 
-        res.json({ total_products, total_items, logs_today, total_users });
+        // Novo: logs por dia do mês atual
+        const [logsPorDia] = await pool.query(`
+            SELECT DATE(created_at) as dia, COUNT(*) as total
+            FROM activity_logs
+            WHERE empresa_id = ? AND MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())
+            GROUP BY dia
+            ORDER BY dia ASC
+        `, [empresa_id]);
+
+        res.json({ total_products, total_items, logs_today, total_users, logsPorDia });
     } catch (error) {
         console.error('Erro ao buscar estatísticas do dashboard:', error);
         res.status(500).json({ message: 'Erro ao buscar estatísticas.' });
@@ -716,6 +726,40 @@ app.get('/api/public/empresa', async (req, res) => {
         res.status(500).json({ message: 'Erro interno do servidor' });
     }
 });
+
+// Função utilitária para buscar detalhes públicos de um produto
+async function getProductDetails(id) {
+    // Busca o produto (de qualquer empresa, pois é público)
+    const [products] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
+    if (!products.length) return null;
+    const product = products[0];
+    // Busca localizações do produto
+    const [locations] = await pool.query(`
+        SELECT pl.location_id, pl.quantity, pl.sub_location, l.name as location_name
+        FROM product_locations pl 
+        JOIN locations l ON pl.location_id = l.id 
+        WHERE pl.product_id = ?
+    `, [id]);
+    // Converter localizações para o formato locations (array) - compatível com frontend
+    const locationsArr = locations.map(loc => ({
+        location_id: loc.location_id,
+        name: loc.location_name || 'Sem localização',
+        quantity: loc.quantity || 0,
+        sub_location: loc.sub_location || ''
+    }));
+    return {
+        id: product.id,
+        name: product.name || 'Sem nome',
+        description: product.description || '',
+        sku: product.sku || '',
+        brand: product.brand || '',
+        unit_price: product.unit_price || 0,
+        is_active: product.is_active !== null && product.is_active !== undefined ? !!product.is_active : true,
+        created_at: product.created_at,
+        updated_at: product.updated_at,
+        locations: locationsArr
+    };
+}
 
 app.get('/api/public/products/:id', async (req, res) => {
     try {
@@ -832,6 +876,128 @@ app.post('/api/locations', authenticateToken, async (req, res) => {
         }
         console.error('Erro ao criar localização:', error);
         res.status(500).json({ message: 'Erro ao criar localização.' });
+    }
+});
+
+// Rota para logs de um produto específico
+app.get('/api/products/:id/logs', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const empresaId = req.user.empresa_id;
+        const [logs] = await pool.query(
+            `SELECT l.id, l.empresa_id, l.user_id, l.user_full_name, l.product_id, l.action, l.details, l.created_at
+             FROM activity_logs l
+             WHERE l.empresa_id = ? AND l.product_id = ?
+             ORDER BY l.created_at DESC`,
+            [empresaId, id]
+        );
+        res.json(logs);
+    } catch (error) {
+        res.status(500).json({ message: 'Erro ao buscar logs do produto.' });
+    }
+});
+
+// --- ROTAS DE UPLOAD ---
+
+// Upload de avatar do usuário
+app.post('/api/user/avatar', authenticateToken, upload.single('avatar'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
+        }
+
+        const userId = req.user.id;
+        const empresaId = req.user.empresa_id;
+        const fileUrl = `/uploads/avatars/${req.file.filename}`;
+
+        // Atualizar URL do avatar no banco de dados
+        await pool.query(
+            'UPDATE users SET profile_picture_url = ? WHERE id = ? AND empresa_id = ?',
+            [fileUrl, userId, empresaId]
+        );
+
+        // Log da atividade
+        await logActivity(empresaId, req.user, 'ATUALIZOU_AVATAR', { userId });
+
+        res.json({ 
+            message: 'Avatar atualizado com sucesso!', 
+            url: fileUrl 
+        });
+
+    } catch (error) {
+        console.error('Erro no upload de avatar:', error);
+        res.status(500).json({ message: 'Erro ao fazer upload do avatar.' });
+    }
+});
+
+// Upload de logo da empresa
+app.post('/api/empresa/logo', authenticateToken, authorizeRole(['diretor']), upload.single('logo'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
+        }
+
+        const empresaId = req.user.empresa_id;
+        const fileUrl = `/uploads/logos/${req.file.filename}`;
+
+        // Atualizar URL da logo no banco de dados
+        await pool.query(
+            'UPDATE empresas SET logo_url = ? WHERE id = ?',
+            [fileUrl, empresaId]
+        );
+
+        // Log da atividade
+        await logActivity(empresaId, req.user, 'ATUALIZOU_LOGO', { empresaId });
+
+        res.json({ 
+            message: 'Logo atualizada com sucesso!', 
+            url: fileUrl 
+        });
+
+    } catch (error) {
+        console.error('Erro no upload de logo:', error);
+        res.status(500).json({ message: 'Erro ao fazer upload da logo.' });
+    }
+});
+
+// Upload de imagem de produto
+app.post('/api/products/:id/image', authenticateToken, upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'Nenhum arquivo enviado.' });
+        }
+
+        const productId = req.params.id;
+        const empresaId = req.user.empresa_id;
+        const fileUrl = `/uploads/products/${req.file.filename}`;
+
+        // Verificar se o produto pertence à empresa
+        const [products] = await pool.query(
+            'SELECT id FROM products WHERE id = ? AND empresa_id = ?',
+            [productId, empresaId]
+        );
+
+        if (products.length === 0) {
+            return res.status(404).json({ message: 'Produto não encontrado.' });
+        }
+
+        // Atualizar URL da imagem no banco de dados
+        await pool.query(
+            'UPDATE products SET image_url = ? WHERE id = ? AND empresa_id = ?',
+            [fileUrl, productId, empresaId]
+        );
+
+        // Log da atividade
+        await logActivity(empresaId, req.user, 'ATUALIZOU_IMAGEM_PRODUTO', { productId });
+
+        res.json({ 
+            message: 'Imagem do produto atualizada com sucesso!', 
+            image_url: fileUrl 
+        });
+
+    } catch (error) {
+        console.error('Erro no upload de imagem do produto:', error);
+        res.status(500).json({ message: 'Erro ao fazer upload da imagem.' });
     }
 });
 

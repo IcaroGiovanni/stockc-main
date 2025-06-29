@@ -10,6 +10,11 @@
     <link rel="stylesheet" href="../css/configuracoes.css">
 </head>
 <body>
+    <!-- Botão Hamburger para Mobile -->
+    <button class="mobile-menu-toggle hidden" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="logo-container">
@@ -183,7 +188,7 @@
     .panel-title { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700; color: white; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--color-glass-border); }
     .panel-content { display: flex; flex-direction: column; }
     .avatar-section { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px; }
-    .avatar-section img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-glass-border); }
+    .avatar-section img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-glass-border); }
     .avatar-section img.is-logo { border-radius: 12px; background-color: rgba(0,0,0,0.2); padding: 5px; }
     .form-subtitle { font-family: 'Orbitron', sans-serif; font-size: 14px; text-transform: uppercase; margin-bottom: 16px; text-align: center; }
     .form-divider { border-color: var(--color-glass-border); margin: 24px 0; }
@@ -194,4 +199,200 @@
     .space-y-4 > *:not([hidden]) ~ *:not([hidden]) { margin-top: 1rem; }
     .mt-4 { margin-top: 1rem; } .mt-6 { margin-top: 1.5rem; }
     .w-full { width: 100%; }
+    
+    /* ===== RESPONSIVIDADE MOBILE ===== */
+    
+    /* Tablets */
+    @media (max-width: 768px) {
+        .config-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        
+        .config-col {
+            gap: 16px;
+        }
+        
+        .glass-panel {
+            padding: 16px;
+        }
+        
+        .panel-title {
+            font-size: 16px;
+        }
+        
+        .avatar-section img {
+            width: 100px;
+            height: 100px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .neo-input {
+            font-size: 14px;
+            padding: 10px;
+        }
+        
+        .btn-submit {
+            padding: 12px;
+            font-size: 14px;
+        }
+        
+        .rule-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .rule-text p {
+            font-size: 12px;
+        }
+        
+        .btn-secondary {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        
+        .locations-list {
+            gap: 12px;
+        }
+        
+        .form-group input[type="text"] {
+            font-size: 14px;
+            padding: 8px;
+        }
+    }
+    
+    /* Smartphones */
+    @media (max-width: 480px) {
+        .config-grid {
+            gap: 12px;
+        }
+        
+        .config-col {
+            gap: 12px;
+        }
+        
+        .glass-panel {
+            padding: 12px;
+            border-radius: 12px;
+        }
+        
+        .panel-title {
+            font-size: 14px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+        }
+        
+        .avatar-section {
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .avatar-section img {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-group label {
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        
+        .neo-input {
+            font-size: 14px;
+            padding: 8px;
+            border-radius: 8px;
+        }
+        
+        .btn-submit {
+            padding: 10px;
+            font-size: 13px;
+            border-radius: 8px;
+        }
+        
+        .form-subtitle {
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .form-divider {
+            margin: 16px 0;
+        }
+        
+        .rule-item {
+            gap: 8px;
+        }
+        
+        .rule-text label {
+            font-size: 13px;
+        }
+        
+        .rule-text p {
+            font-size: 11px;
+        }
+        
+        .btn-secondary {
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+        
+        .locations-list {
+            gap: 8px;
+        }
+        
+        .form-group input[type="text"] {
+            font-size: 13px;
+            padding: 6px;
+        }
+        
+        .mt-4 { margin-top: 0.75rem; }
+        .mt-6 { margin-top: 1rem; }
+    }
+    
+    /* Smartphones muito pequenos */
+    @media (max-width: 360px) {
+        .glass-panel {
+            padding: 10px;
+        }
+        
+        .panel-title {
+            font-size: 13px;
+        }
+        
+        .avatar-section img {
+            width: 70px;
+            height: 70px;
+        }
+        
+        .neo-input {
+            font-size: 13px;
+            padding: 6px;
+        }
+        
+        .btn-submit {
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        .rule-text label {
+            font-size: 12px;
+        }
+        
+        .rule-text p {
+            font-size: 10px;
+        }
+        
+        .btn-secondary {
+            padding: 5px 8px;
+            font-size: 11px;
+        }
+    }
 </style> 

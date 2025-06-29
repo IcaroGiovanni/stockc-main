@@ -101,4 +101,42 @@ document.addEventListener('DOMContentLoaded', async () => {
       userAvatar.src = `https://i.pravatar.cc/40?u=${userData.username}`;
     }
   }
+
+  // --- Funcionalidade do Menu Mobile ---
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const sidebar = document.querySelector('.sidebar');
+  
+  // Mostrar botão hamburger em telas pequenas
+  function checkMobileMenu() {
+    if (window.innerWidth <= 768) {
+      if (mobileMenuToggle) mobileMenuToggle.classList.remove('hidden');
+    } else {
+      if (mobileMenuToggle) mobileMenuToggle.classList.add('hidden');
+      if (sidebar) sidebar.classList.remove('mobile-open');
+    }
+  }
+  
+  // Event listener para o botão hamburger
+  if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', () => {
+      if (sidebar) {
+        sidebar.classList.toggle('mobile-open');
+      }
+    });
+  }
+  
+  // Fechar menu ao clicar fora dele (em mobile)
+  document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 768) {
+      if (sidebar && sidebar.classList.contains('mobile-open')) {
+        if (!sidebar.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
+          sidebar.classList.remove('mobile-open');
+        }
+      }
+    }
+  });
+  
+  // Verificar tamanho da tela ao carregar e redimensionar
+  checkMobileMenu();
+  window.addEventListener('resize', checkMobileMenu);
 });

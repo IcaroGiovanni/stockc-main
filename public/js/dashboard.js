@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const data = await response.json();
       updateDashboardUI(data);
+      renderActionsChart(data.logsPorDia || []);
+      renderActivityCalendar(data.logsPorDia || []);
 
     } catch (error) {
       console.error('Erro ao buscar dados para o dashboard:', error);
@@ -94,6 +96,110 @@ document.addEventListener('DOMContentLoaded', async () => {
       activityBody.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-red-500">Erro ao carregar atividades.</td></tr>';
     }
   };
+
+  // Gráfico de ações por dia
+  function renderActionsChart(logsPorDia) {
+    const ctx = document.getElementById('actionsChart').getContext('2d');
+    if (!logsPorDia || logsPorDia.length === 0) {
+      ctx.clearRect(0, 0, 400, 120);
+      return;
+    }
+    const labels = logsPorDia.map(l => l.dia);
+    const data = logsPorDia.map(l => l.total);
+    if (window.actionsChartInstance) window.actionsChartInstance.destroy();
+    window.actionsChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Ações',
+          data,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.15)',
+          pointBackgroundColor: '#fbbf24',
+          pointBorderColor: '#fbbf24',
+          tension: 0.4,
+          fill: true,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#fff' }, grid: { color: '#23283a' } },
+          y: { beginAtZero: true, ticks: { color: '#fff' }, grid: { color: '#23283a' } }
+        }
+      }
+    });
+  }
+
+  // Calendário de atividades
+  function renderActivityCalendar(logsPorDia) {
+    const calendarEl = document.getElementById('activity-calendar');
+    if (!calendarEl) return;
+    // Limpa
+    calendarEl.innerHTML = '';
+    // Pega mês/ano atual
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    // Mapeia logs por dia
+    const logsMap = {};
+    logsPorDia.forEach(l => { logsMap[l.dia] = l.total; });
+    // Cabeçalho
+    const header = document.createElement('div');
+    header.style.textAlign = 'center';
+    header.style.marginBottom = '8px';
+    header.innerHTML = `<b>${now.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</b>`;
+    calendarEl.appendChild(header);
+    // Dias da semana
+    const weekDays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+    const weekRow = document.createElement('div');
+    weekRow.style.display = 'flex';
+    weekRow.style.justifyContent = 'center';
+    weekDays.forEach(d => {
+      const wd = document.createElement('span');
+      wd.textContent = d;
+      wd.style.width = '32px';
+      wd.style.display = 'inline-block';
+      wd.style.textAlign = 'center';
+      wd.style.color = '#fbbf24';
+      weekRow.appendChild(wd);
+    });
+    calendarEl.appendChild(weekRow);
+    // Dias do mês
+    const firstDay = new Date(year, month, 1).getDay();
+    let dayCount = 1;
+    for (let w = 0; w < 6; w++) {
+      const week = document.createElement('div');
+      week.style.display = 'flex';
+      week.style.justifyContent = 'center';
+      for (let d = 0; d < 7; d++) {
+        const dayEl = document.createElement('span');
+        dayEl.className = 'calendar-day';
+        if (w === 0 && d < firstDay) {
+          dayEl.innerHTML = '&nbsp;';
+        } else if (dayCount <= daysInMonth) {
+          dayEl.textContent = dayCount;
+          const diaStr = `${year}-${String(month+1).padStart(2,'0')}-${String(dayCount).padStart(2,'0')}`;
+          if (logsMap[diaStr] >= 5) {
+            dayEl.classList.add('active-blue');
+          } else if (logsMap[diaStr] > 0) {
+            dayEl.classList.add('active-yellow');
+          }
+          if (dayCount === now.getDate()) {
+            dayEl.classList.add('today');
+          }
+          dayCount++;
+        } else {
+          dayEl.innerHTML = '&nbsp;';
+        }
+        week.appendChild(dayEl);
+      }
+      calendarEl.appendChild(week);
+      if (dayCount > daysInMonth) break;
+    }
+  }
 
   fetchDashboardData();
 });
