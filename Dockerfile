@@ -38,6 +38,7 @@ RUN npm ci --only=production && npm cache clean --force
 # Copiar código da aplicação do stage builder
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/server.js ./
 COPY --from=builder /app/migration.js ./
 COPY --from=builder /app/create_core_tables.sql ./
 COPY --from=builder /app/fix_products_table.sql ./
