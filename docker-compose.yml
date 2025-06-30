@@ -34,8 +34,6 @@ services:
       - MYSQL_DATABASE=stock_control
       - MYSQL_USER=stockctrl
       - MYSQL_PASSWORD=stockctrl123
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
