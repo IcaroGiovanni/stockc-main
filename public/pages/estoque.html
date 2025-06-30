@@ -52,6 +52,13 @@
             <div id="total-container">
                 Total de Produtos: <span id="total-value">0</span>
             </div>
+            <div class="estoque-actions" style="display:flex;gap:10px;align-items:center;">
+                <button id="btn-export-xlsx" class="btn btn-primary btn-xl" style="display:flex;align-items:center;gap:8px;min-width:120px;" title="Exportar planilha"><i class="fas fa-file-excel"></i> <span>Exportar</span></button>
+                <label for="input-import-xlsx" class="btn btn-primary btn-xl" style="margin-bottom:0;cursor:pointer;display:flex;align-items:center;gap:8px;min-width:120px;">
+                    <i class="fas fa-file-import"></i> <span>Importar</span>
+                    <input id="input-import-xlsx" type="file" accept=".xlsx" style="display:none;">
+                </label>
+            </div>
         </div>
 
         <!-- Controles (Busca) -->
@@ -141,10 +148,11 @@
                             <!-- Gerado pelo JS -->
                         </div>
                         <div id="qr-info-preview" class="qr-info-preview">
-                            <h3 id="qr-info-product-name" class="qr-info-product-name">Nome do Produto</h3>
-                            <p id="qr-info-main-location"><b>Local Principal:</b> <span>-</span></p>
-                            <p id="qr-info-main-quantity"><b>Qtd. Principal:</b> <span>-</span></p>
-                            <p id="qr-info-excess-location" class="hidden"><b>Excesso:</b> <span>-</span></p>
+                            <!-- Remover estes elementos do modal -->
+                            <!-- <h3 id="qr-info-product-name" class="qr-info-product-name">Nome do Produto</h3> -->
+                            <!-- <p id="qr-info-main-location"><b>Local Principal:</b> <span>-</span></p> -->
+                            <!-- <p id="qr-info-main-quantity"><b>Qtd. Principal:</b> <span>-</span></p> -->
+                            <!-- <p id="qr-info-excess-location" class="hidden"><b>Excesso:</b> <span>-</span></p> -->
                         </div>
                     </div>
                 </div>
@@ -163,7 +171,7 @@
                         <label>🎨 Ajustes do QR Code</label>
                         <div class="form-group-inline">
                             <label for="qr-size-input">Tamanho (px)</label>
-                            <input type="range" id="qr-size-input" min="50" max="500" value="200" class="slider">
+                            <input type="range" id="qr-size-input" min="50" max="1000" value="200" class="slider">
                             <span id="qr-size-value">200px</span>
                         </div>
                          <div class="form-group-inline">
@@ -183,6 +191,19 @@
                             <button id="btn-print-qr" class="btn btn-primary" title="Imprimir etiqueta"><i class="fas fa-print"></i> Imprimir</button>
                             <button id="btn-download-qr" class="btn btn-secondary" title="Baixar como imagem PNG"><i class="fas fa-download"></i> Baixar PNG</button>
                             <button id="btn-copy-link" class="btn btn-secondary" title="Copiar link do produto"><i class="fas fa-copy"></i> Copiar Link</button>
+                            <button id="btn-edit-print-text" class="btn btn-secondary" title="Editar escrita da etiqueta"><i class="fas fa-pen"></i> Editar Escrita</button>
+                        </div>
+                        
+                        <!-- Container para editar escrita (inicialmente oculto) -->
+                        <div id="edit-print-text-container" class="hidden" style="margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                            <div class="form-group">
+                                <label for="input-print-text">Texto da Etiqueta</label>
+                                <textarea id="input-print-text" class="neo-input" rows="3" placeholder="Digite o texto que aparecerá na etiqueta..."></textarea>
+                            </div>
+                            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                <button id="btn-save-print-text" class="btn btn-primary">Salvar Texto</button>
+                                <button id="btn-cancel-print-text" class="btn btn-secondary">Cancelar</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -200,6 +221,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="../js/layout.js"></script>
     <script src="../js/estoque.js"></script>
 </body>

@@ -24,11 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const qrPrintPreviewArea = document.getElementById('qr-print-preview-area');
   const qrCodeContainer = document.getElementById('qrcode-container');
   const qrInfoPreview = document.getElementById('qr-info-preview');
-  const qrInfoProductName = document.getElementById('qr-info-product-name');
-  const qrInfoMainLocation = document.getElementById('qr-info-main-location').querySelector('span');
-  const qrInfoMainQuantity = document.getElementById('qr-info-main-quantity').querySelector('span');
-  const qrInfoExcessLocation = document.getElementById('qr-info-excess-location');
-  const qrInfoExcessLocationText = qrInfoExcessLocation.querySelector('span');
 
   // Controles
   const positionButtons = document.querySelectorAll('.segmented-control .btn-segment');
@@ -61,6 +56,23 @@ document.addEventListener('DOMContentLoaded', () => {
     primaryColor: '#111827',
     eyeColor: '#fbbf24'
   };
+
+  // --- Variável para armazenar o texto customizado da etiqueta ---
+  let customPrintText = '';
+
+  // --- Seletores do novo recurso ---
+  const btnEditPrintText = document.getElementById('btn-edit-print-text');
+  const editPrintTextContainer = document.getElementById('edit-print-text-container');
+  const inputPrintText = document.getElementById('input-print-text');
+  const btnSavePrintText = document.getElementById('btn-save-print-text');
+
+  // Debug dos elementos
+  console.log('[DEBUG] Elementos QR Code encontrados:', {
+    btnEditPrintText: !!btnEditPrintText,
+    editPrintTextContainer: !!editPrintTextContainer,
+    inputPrintText: !!inputPrintText,
+    btnSavePrintText: !!btnSavePrintText
+  });
 
   // --- Funções de UI Auxiliares ---
   const showLoader = (show) => {
@@ -313,30 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     qrModalTitleEl.textContent = `🔳 QR Code: ${sanitized.name}`;
 
     // --- Preenche as informações de estoque ---
-    qrInfoProductName.textContent = sanitized.name;
-
-    // Encontrar a localização principal (primeira com > 0 ou a primeira da lista)
-    let mainLocId = locationDefinitions[0]?.id;
-    let hasStock = false;
-    for(const locId in sanitized.quantities_by_location) {
-      if (sanitized.quantities_by_location[locId]?.quantity > 0) {
-        mainLocId = locId;
-        hasStock = true;
-        break;
-      }
-    }
-    // Correção: garantir que mainLocDetails sempre seja um objeto válido
-    const mainLocDef = locationDefinitions.find(l => l.id === mainLocId);
-    const mainLocDetails = (sanitized.quantities_by_location && sanitized.quantities_by_location[mainLocId]) ? sanitized.quantities_by_location[mainLocId] : { quantity: 0, sub_location: '' };
-    const subLocText = mainLocDetails.sub_location ? `(${mainLocDetails.sub_location})` : '';
-
-    qrInfoMainLocation.textContent = `${mainLocDef?.name || 'N/A'} ${subLocText}`.trim();
-    qrInfoMainQuantity.textContent = mainLocDetails.quantity || 0;
-    qrInfoMainQuantity.parentElement.style.display = 'block'; // Garante que a quantidade apareça no modal
-
-    // Resetar e encontrar excesso
-    qrInfoExcessLocation.classList.add('hidden');
-    // (Lógica de excesso pode ser adicionada aqui se necessário)
+    // (Lógica de estoque pode ser adicionada aqui se necessário)
 
     // Reseta e gera o QR Code com a configuração atual
     qrSizeInput.value = qrConfig.size;
@@ -346,6 +335,12 @@ document.addEventListener('DOMContentLoaded', () => {
     generateQrCode();
 
     qrCodeModalOverlay.classList.remove('hidden');
+
+    // Reset do texto customizado ao abrir o modal
+    customPrintText = '';
+    if (editPrintTextContainer) {
+      editPrintTextContainer.classList.add('hidden');
+    }
   };
 
   const closeQrCodeModal = () => {
@@ -389,119 +384,170 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Botões de Ação
-  btnViewPage.addEventListener('click', () => {
-    if (currentProductForQr) {
-      window.open(`${window.location.origin}/produto/${currentProductForQr.id}`, '_blank');
-    }
-  });
+  if (btnViewPage) {
+    btnViewPage.addEventListener('click', () => {
+      if (currentProductForQr) {
+        window.open(`${window.location.origin}/produto/${currentProductForQr.id}`, '_blank');
+      }
+    });
+  } else {
+    console.error('[ERROR] Botão Visualizar não encontrado');
+  }
 
-  btnDownloadQr.addEventListener('click', () => {
-    if (qrCodeInstance && currentProductForQr) {
-      qrCodeInstance.download({ name: `qrcode-${currentProductForQr.name.replace(/\s+/g, '_')}`, extension: 'png' });
-    }
-  });
+  if (btnPrintQr) {
+    btnPrintQr.addEventListener('click', () => {
+      console.debug('[DEBUG] Botão de imprimir QR acionado');
+      if (!currentProductForQr) {
+        showToast('Nenhum produto selecionado para impressão', 'error');
+        return;
+      }
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        showToast('Bloqueador de popup detectado. Permita popups para imprimir.', 'error');
+        return;
+      }
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>QR Code - Etiqueta</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; background: white; }
+            .qr-container { display: inline-block; padding: 20px; border: 2px solid #333; border-radius: 10px; margin: 10px; }
+            .custom-text { font-size: 16px; font-weight: bold; margin-top: 15px; color: #facc15; border-top: 1px solid #ccc; padding-top: 10px; }
+            @media print { body { margin: 0; } .qr-container { border: 1px solid #000; } }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <div id="qrcode-print"></div>
+            ${customPrintText ? `<div class="custom-text">${customPrintText}</div>` : ''}
+          </div>
+          <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
+          <script>
+            const qrOptions = {
+              width: ${qrConfig.size},
+              height: ${qrConfig.size},
+              data: '${window.location.origin}/produto/${currentProductForQr.id}',
+              dotsOptions: { color: '${qrConfig.primaryColor}', type: 'rounded' },
+              backgroundOptions: { color: 'transparent' },
+              cornersSquareOptions: { color: '${qrConfig.eyeColor}', type: 'extra-rounded' },
+              cornersDotOptions: { color: '${qrConfig.primaryColor}' }
+            };
+            const qrCode = new QRCodeStyling(qrOptions);
+            qrCode.append(document.getElementById('qrcode-print'));
+            window.onload = function() {
+              setTimeout(() => { window.print(); window.close(); }, 500);
+            };
+          </script>
+        </body>
+        </html>
+      `;
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+    });
+  } else {
+    console.error('[ERROR] Botão Imprimir não encontrado');
+  }
 
-  btnCopyLink.addEventListener('click', () => {
-    if (currentProductForQr) {
-      const link = `${window.location.origin}/produto/${currentProductForQr.id}`;
-      navigator.clipboard.writeText(link).then(() => {
-        showToast('Link copiado para a área de transferência!', 'success');
-      }, () => {
-        showToast('Falha ao copiar o link.', 'error');
-      });
-    }
-  });
+  if (btnDownloadQr) {
+    btnDownloadQr.addEventListener('click', () => {
+      if (qrCodeInstance && currentProductForQr) {
+        qrCodeInstance.download({ name: `qrcode-${currentProductForQr.name.replace(/\s+/g, '_')}`, extension: 'png' });
+      }
+    });
+  } else {
+    console.error('[ERROR] Botão Download não encontrado');
+  }
 
-  // *** CORREÇÃO FINAL E DEFINITIVA DA IMPRESSÃO ***
-  btnPrintQr.addEventListener('click', () => {
-    if (!currentProductForQr || !qrCodeInstance) return;
+  if (btnCopyLink) {
+    btnCopyLink.addEventListener('click', () => {
+      if (currentProductForQr) {
+        const link = `${window.location.origin}/produto/${currentProductForQr.id}`;
+        navigator.clipboard.writeText(link).then(() => {
+          showToast('Link copiado para a área de transferência!', 'success');
+        }, () => {
+          showToast('Falha ao copiar o link.', 'error');
+        });
+      }
+    });
+  } else {
+    console.error('[ERROR] Botão Copiar Link não encontrado');
+  }
 
-    const qrCanvas = qrCodeContainer.querySelector('canvas');
-    if (!qrCanvas) {
-      showToast('Elemento QR Code não encontrado para impressão.', 'error');
-      return;
-    }
-    const qrCodeDataUrl = qrCanvas.toDataURL();
-
-    const productName = qrInfoProductName.textContent;
-    const locationName = qrInfoMainLocation.textContent;
-    const isSideLayout = qrPrintPreviewArea.classList.contains('layout-side-by-side');
-
-    const img = new Image();
-
-    img.onload = () => {
-      const printLayout = `
-                <html>
-                <head>
-                    <title>Imprimir Etiqueta - ${productName}</title>
-                    <style>
-                        @media print { 
-                            @page { margin: 10mm; size: auto; } 
-                            body { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; } 
-                        }
-                        html, body { 
-                            height: 100%; width: 100%; margin: 0; padding: 0; 
-                            font-family: Arial, sans-serif; 
-                            display: flex; justify-content: center; align-items: center;
-                        }
-                        .container-vertical { 
-                            display: flex; flex-direction: column; align-items: center; 
-                            text-align: center; gap: 10px; 
-                        }
-                        .container-horizontal { 
-                            display: flex; flex-direction: row; align-items: center; 
-                            text-align: left; gap: 15px; 
-                        }
-                        img { display: block; width: 120px; height: 120px; }
-                        .info { }
-                        h3 { margin: 0 0 5px 0; font-size: 1rem; }
-                        p { margin: 0; font-size: 0.9rem; }
-                    </style>
-                </head>
-                <body>
-                    <div class="${isSideLayout ? 'container-horizontal' : 'container-vertical'}">
-                        <img src="${img.src}">
-                        <div class="info">
-                            <h3>${productName}</h3>
-                            <p><b>Local:</b> ${locationName}</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `;
-
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      iframe.style.top = '-100px';
-      document.body.appendChild(iframe);
-
-      const doc = iframe.contentWindow.document;
-      doc.open();
-      doc.write(printLayout);
-      doc.close();
-
-      const printAndClean = () => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-        setTimeout(() => {
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
+  // Botão Editar Escrita
+  if (btnEditPrintText) {
+    btnEditPrintText.addEventListener('click', () => {
+      console.debug('[DEBUG] Botão Editar Escrita clicado!');
+      if (editPrintTextContainer) {
+        editPrintTextContainer.classList.toggle('hidden');
+        if (!editPrintTextContainer.classList.contains('hidden')) {
+          if (inputPrintText) {
+            inputPrintText.value = customPrintText;
+            inputPrintText.focus();
           }
-        }, 1000);
-      };
+          console.debug('[DEBUG] Input de escrita exibido');
+        } else {
+          console.debug('[DEBUG] Input de escrita ocultado');
+        }
+      } else {
+        console.error('[ERROR] Container de edição não encontrado');
+      }
+    });
+  } else {
+    console.error('[ERROR] Botão Editar Escrita não encontrado');
+  }
 
-      setTimeout(printAndClean, 250);
-    };
+  // Botão Salvar Texto
+  if (btnSavePrintText) {
+    btnSavePrintText.addEventListener('click', () => {
+      if (inputPrintText) {
+        customPrintText = inputPrintText.value.trim();
+        console.debug('[DEBUG] Texto salvo:', customPrintText);
+        
+        // Atualiza a pré-visualização
+        const preview = document.getElementById('qr-info-preview');
+        if (preview) {
+          let customTextEl = preview.querySelector('.custom-print-text');
+          if (!customTextEl) {
+            customTextEl = document.createElement('p');
+            customTextEl.className = 'custom-print-text';
+            preview.appendChild(customTextEl);
+          }
+          customTextEl.textContent = customPrintText;
+          customTextEl.style.color = '#facc15';
+          customTextEl.style.fontWeight = 'bold';
+          customTextEl.style.marginTop = '8px';
+          console.debug('[DEBUG] Pré-visualização atualizada com o texto customizado');
+        }
+        
+        if (editPrintTextContainer) {
+          editPrintTextContainer.classList.add('hidden');
+        }
+        showToast('Texto da etiqueta salvo!', 'success');
+      } else {
+        console.error('[ERROR] Input de texto não encontrado');
+      }
+    });
+  } else {
+    console.error('[ERROR] Botão Salvar Texto não encontrado');
+  }
 
-    img.onerror = () => {
-      showToast('Erro ao carregar a imagem do QR Code para impressão.', 'error');
-    };
-
-    img.src = qrCodeDataUrl;
-  });
+  // Botão Cancelar Texto
+  const btnCancelPrintText = document.getElementById('btn-cancel-print-text');
+  if (btnCancelPrintText) {
+    btnCancelPrintText.addEventListener('click', () => {
+      if (inputPrintText) {
+        inputPrintText.value = customPrintText; // Restaura o valor original
+      }
+      if (editPrintTextContainer) {
+        editPrintTextContainer.classList.add('hidden');
+      }
+      showToast('Edição cancelada', 'info');
+    });
+  } else {
+    console.error('[ERROR] Botão Cancelar Texto não encontrado');
+  }
 
   // --- Lógica de Permissão ---
   const hasPermission = (userRole, requiredRole) => {
@@ -559,6 +605,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       filterAndRender();
+
+      // Adicionar botão de template de importação
+      addTemplateButton();
 
     } catch (error) {
       console.error('Erro na inicialização:', error);
@@ -680,6 +729,195 @@ document.addEventListener('DOMContentLoaded', () => {
     filterAndRender();
   });
 
+  // --- Exportar CSV ---
+  const btnExportCsv = document.getElementById('btn-export-csv');
+  if (btnExportCsv) {
+    btnExportCsv.addEventListener('click', () => {
+      if (!Array.isArray(allProducts) || allProducts.length === 0) {
+        alert('Nenhum produto para exportar!');
+        return;
+      }
+      // Monta o CSV
+      const headers = ['ID', 'Nome', 'Localizações', 'Total'];
+      const rows = allProducts.map(prod => [
+        prod.id,
+        '"' + (prod.name || '').replace(/"/g, '""') + '"',
+        '"' + (Array.isArray(prod.locations) ? prod.locations.map(l => `${l.name} (${l.quantity})`).join('; ') : '') + '"',
+        prod.locations && Array.isArray(prod.locations) ? prod.locations.reduce((sum, l) => sum + (l.quantity || 0), 0) : 0
+      ]);
+      let csv = headers.join(',') + '\n' + rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'estoque.csv';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    });
+  }
+
+  // --- Exportar XLSX ---
+  const btnExportXlsx = document.getElementById('btn-export-xlsx');
+  if (btnExportXlsx) {
+    btnExportXlsx.addEventListener('click', () => {
+      if (!Array.isArray(allProducts) || allProducts.length === 0) {
+        alert('Nenhum produto para exportar!');
+        return;
+      }
+      // Monta os dados para a planilha
+      const data = allProducts.map(prod => ({
+        ID: prod.id,
+        Nome: prod.name || '',
+        Localizacoes: Array.isArray(prod.locations) ? prod.locations.map(l => `${l.name} (${l.quantity})`).join('; ') : '',
+        Total: prod.locations && Array.isArray(prod.locations) ? prod.locations.reduce((sum, l) => sum + (l.quantity || 0), 0) : 0
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Estoque');
+      XLSX.writeFile(wb, 'estoque.xlsx');
+    });
+  }
+
+  // Função para mostrar modal informativo
+  const showModalInfo = (title, message, type = 'info') => {
+    console.log('[DEBUG] showModalInfo chamada:', { title, message, type });
+    
+    // Criar modal se não existir
+    let modal = document.getElementById('info-modal');
+    if (!modal) {
+      console.log('[DEBUG] Criando novo modal...');
+      modal = document.createElement('div');
+      modal.id = 'info-modal';
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+          <div class="modal-header">
+            <h2 class="premium-title" id="info-modal-title">${title}</h2>
+            <button class="close-button" id="info-modal-close"><i class="fas fa-times"></i></button>
+          </div>
+          <div class="modal-body">
+            <div style="text-align: center; padding: 20px;">
+              <i class="fas fa-info-circle" style="font-size: 3rem; color: var(--color-accent); margin-bottom: 15px;"></i>
+              <p style="font-size: 1.1rem; line-height: 1.6; color: var(--color-text);">${message}</p>
+            </div>
+          </div>
+          <div class="modal-footer" style="text-align: center; padding: 15px; border-top: 1px solid var(--color-glass-border);">
+            <button class="btn btn-primary" id="info-modal-ok">Entendi</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      // Event listeners para fechar modal
+      document.getElementById('info-modal-close').addEventListener('click', () => {
+        console.log('[DEBUG] Fechando modal via X');
+        modal.classList.add('hidden');
+      });
+      document.getElementById('info-modal-ok').addEventListener('click', () => {
+        console.log('[DEBUG] Fechando modal via botão Entendi');
+        modal.classList.add('hidden');
+      });
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+          console.log('[DEBUG] Fechando modal via clique fora');
+          modal.classList.add('hidden');
+        }
+      });
+    }
+
+    // Atualizar conteúdo e mostrar
+    document.getElementById('info-modal-title').textContent = title;
+    modal.querySelector('.modal-body p').textContent = message;
+    modal.classList.remove('hidden');
+    console.log('[DEBUG] Modal mostrado!');
+  };
+
+  // --- Importar CSV ---
+  const inputImportCsv = document.getElementById('input-import-csv');
+  if (inputImportCsv) {
+    inputImportCsv.addEventListener('change', (event) => {
+      // Modal informativo - disponível na próxima atualização
+      showModalInfo(
+        'Importação de CSV',
+        'A funcionalidade de importação de arquivos CSV estará disponível na próxima atualização do sistema.',
+        'info'
+      );
+      
+      // Limpar o input
+      event.target.value = '';
+    });
+  }
+
+  // --- Importar XLSX ---
+  const inputImportXlsx = document.getElementById('input-import-xlsx');
+  const labelImportXlsx = document.querySelector('label[for="input-import-xlsx"]');
+  
+  if (inputImportXlsx) {
+    // Event listener no input (quando arquivo é selecionado)
+    inputImportXlsx.addEventListener('change', async (event) => {
+      // Modal informativo - disponível na próxima atualização
+      showModalInfo(
+        'Importação de Planilhas',
+        'A funcionalidade de importação de planilhas Excel estará disponível na próxima atualização do sistema.',
+        'info'
+      );
+      
+      // Limpar o input
+      event.target.value = '';
+    });
+  }
+
+  // Event listener no label (quando o botão é clicado)
+  if (labelImportXlsx) {
+    labelImportXlsx.addEventListener('click', (event) => {
+      console.log('[DEBUG] Botão Importar clicado!');
+      
+      // Modal informativo - disponível na próxima atualização
+      showModalInfo(
+        'Importação de Planilhas',
+        'A funcionalidade de importação de planilhas Excel estará disponível na próxima atualização do sistema.',
+        'info'
+      );
+      
+      // Prevenir que o input seja acionado
+      event.preventDefault();
+    });
+  }
+
+  // --- Gerar Planilha de Exemplo para Importação ---
+  const generateImportTemplate = () => {
+    // Modal informativo - disponível na próxima atualização
+    showModalInfo(
+      'Template de Importação',
+      'O template de importação estará disponível na próxima atualização do sistema.',
+      'info'
+    );
+  };
+
+  // Adicionar botão para download do template (se não existir)
+  const addTemplateButton = () => {
+    const actionsContainer = document.querySelector('.estoque-actions');
+    if (actionsContainer && !document.getElementById('btn-template')) {
+      const templateBtn = document.createElement('button');
+      templateBtn.id = 'btn-template';
+      templateBtn.className = 'btn btn-secondary btn-xl';
+      templateBtn.style.cssText = 'display:flex;align-items:center;gap:8px;min-width:120px;';
+      templateBtn.title = 'Baixar template de importação';
+      templateBtn.innerHTML = '<i class="fas fa-download"></i> <span>Template</span>';
+      templateBtn.addEventListener('click', generateImportTemplate);
+      actionsContainer.appendChild(templateBtn);
+    }
+  };
+
   // Inicia a aplicação
   initialize();
+
+  // Teste da função showModalInfo (remover depois)
+  console.log('[DEBUG] Função showModalInfo disponível:', typeof showModalInfo);
+  
+  // Teste manual - descomentar para testar
+  // setTimeout(() => {
+  //   showModalInfo('Teste', 'Este é um teste do modal informativo!', 'info');
+  // }, 2000);
 });

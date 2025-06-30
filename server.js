@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
+const XLSX = require('xlsx');
 
 const app = express();
 
@@ -107,8 +108,15 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 // --- Configuração do Multer para Upload de Arquivos ---
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const dest = file.fieldname === 'avatar' ? 'public/uploads/avatars' : file.fieldname === 'logo' ? 'public/uploads/logos' : 'public/uploads/products';
-        cb(null, dest);
+        if (file.fieldname === 'excel') {
+            cb(null, 'public/uploads/excel');
+        } else if (file.fieldname === 'avatar') {
+            cb(null, 'public/uploads/avatars');
+        } else if (file.fieldname === 'logo') {
+            cb(null, 'public/uploads/logos');
+        } else {
+            cb(null, 'public/uploads/products');
+        }
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -119,17 +127,32 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 },
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB para Excel
     fileFilter: function (req, file, cb) {
-        const filetypes = /jpeg|jpg|png|gif/;
-        const mimetype = filetypes.test(file.mimetype);
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        if (mimetype && extname) {
-            return cb(null, true);
+        if (file.fieldname === 'excel') {
+            // Permitir apenas arquivos Excel
+            const filetypes = /xlsx|xls/;
+            const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+            if (extname) {
+                return cb(null, true);
+            }
+            cb(new Error("Erro: Apenas arquivos Excel (.xlsx, .xls) são permitidos!"));
+        } else {
+            // Para outros campos, permitir apenas imagens
+            const filetypes = /jpeg|jpg|png|gif/;
+            const mimetype = filetypes.test(file.mimetype);
+            const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+            if (mimetype && extname) {
+                return cb(null, true);
+            }
+            cb(new Error("Erro: Apenas imagens (jpeg, jpg, png, gif) são permitidas!"));
         }
-        cb(new Error("Erro: Apenas imagens (jpeg, jpg, png, gif) são permitidas!"));
     }
 });
+
+// Criar pasta para arquivos Excel se não existir
+const excelDir = path.join(__dirname, 'public/uploads/excel');
+if (!fs.existsSync(excelDir)) fs.mkdirSync(excelDir, { recursive: true });
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
@@ -567,6 +590,204 @@ app.delete('/api/products/:id', authenticateToken, async (req, res) => {
         }
         console.error('Erro ao apagar produto:', error);
         res.status(500).json({ message: 'Erro ao apagar produto.' });
+    }
+});
+
+// Importar produtos via planilha Excel
+app.post('/api/products/import', authenticateToken, upload.single('excel'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'Nenhum arquivo Excel foi enviado.' });
+    }
+
+    const empresa_id = req.user.empresa_id;
+    const conn = await pool.getConnection();
+    
+    try {
+        // Ler o arquivo Excel
+        const workbook = XLSX.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        if (data.length < 2) {
+            return res.status(400).json({ 
+                message: 'Planilha vazia ou formato inválido. A primeira linha deve conter os cabeçalhos.' 
+            });
+        }
+
+        // Extrair cabeçalhos (primeira linha)
+        const headers = data[0].map(h => h ? h.toString().toLowerCase().trim() : '');
+        
+        // Validar cabeçalhos obrigatórios
+        const requiredHeaders = ['nome', 'localizacao', 'quantidade'];
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+        
+        if (missingHeaders.length > 0) {
+            return res.status(400).json({ 
+                message: `Cabeçalhos obrigatórios não encontrados: ${missingHeaders.join(', ')}. 
+                Cabeçalhos encontrados: ${headers.join(', ')}` 
+            });
+        }
+
+        // Buscar configurações da empresa
+        const [[empresa]] = await conn.query(
+            'SELECT allow_duplicate_names FROM empresas WHERE id = ?', 
+            [empresa_id]
+        );
+
+        // Buscar localizações existentes
+        const [locations] = await conn.query(
+            'SELECT id, name FROM locations WHERE empresa_id = ?', 
+            [empresa_id]
+        );
+        const locationMap = new Map(locations.map(loc => [loc.name.toLowerCase(), loc.id]));
+
+        // Buscar produtos existentes para verificar duplicatas
+        const [existingProducts] = await conn.query(
+            'SELECT name FROM products WHERE empresa_id = ?', 
+            [empresa_id]
+        );
+        const existingNames = new Set(existingProducts.map(p => p.name.toLowerCase()));
+
+        // Processar linhas de dados
+        const results = {
+            total: data.length - 1,
+            success: 0,
+            errors: [],
+            warnings: []
+        };
+
+        await conn.beginTransaction();
+
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            const rowNumber = i + 1;
+            
+            try {
+                // Mapear dados da linha
+                const rowData = {};
+                headers.forEach((header, index) => {
+                    rowData[header] = row[index] || '';
+                });
+
+                const productName = rowData.nome?.toString().trim();
+                const locationName = rowData.localizacao?.toString().trim();
+                const quantity = parseInt(rowData.quantidade) || 0;
+                const description = rowData.descricao?.toString().trim() || '';
+                const sku = rowData.sku?.toString().trim() || '';
+                const brand = rowData.marca?.toString().trim() || '';
+                const unitPrice = parseFloat(rowData.preco_unitario) || 0;
+                const subLocation = rowData.sub_localizacao?.toString().trim() || '';
+
+                // Validações
+                const errors = [];
+
+                if (!productName) {
+                    errors.push('Nome do produto é obrigatório');
+                }
+
+                if (!locationName) {
+                    errors.push('Localização é obrigatória');
+                }
+
+                if (quantity < 0) {
+                    errors.push('Quantidade deve ser maior ou igual a zero');
+                }
+
+                // Verificar se a localização existe
+                const locationId = locationMap.get(locationName.toLowerCase());
+                if (!locationId) {
+                    errors.push(`Localização "${locationName}" não existe no sistema`);
+                }
+
+                // Verificar duplicatas (se não permitido)
+                if (!empresa.allow_duplicate_names && existingNames.has(productName.toLowerCase())) {
+                    errors.push(`Produto "${productName}" já existe no sistema`);
+                }
+
+                if (errors.length > 0) {
+                    results.errors.push({
+                        row: rowNumber,
+                        product: productName || 'N/A',
+                        errors: errors
+                    });
+                    continue;
+                }
+
+                // Inserir produto
+                const [productResult] = await conn.query(`
+                    INSERT INTO products (name, description, sku, brand, unit_price, empresa_id, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                `, [productName, description, sku, brand, unitPrice, empresa_id]);
+
+                const productId = productResult.insertId;
+
+                // Inserir localização do produto
+                if (locationId && quantity > 0) {
+                    await conn.query(`
+                        INSERT INTO product_locations (product_id, location_id, empresa_id, quantity, sub_location, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+                    `, [productId, locationId, empresa_id, quantity, subLocation]);
+                }
+
+                // Adicionar nome à lista de existentes para evitar duplicatas na mesma importação
+                existingNames.add(productName.toLowerCase());
+                results.success++;
+
+                // Log da atividade
+                await logActivity(empresa_id, req.user, 'IMPORTOU_PRODUTO', { 
+                    produtoId: productId, 
+                    produtoNome: productName,
+                    quantidade: quantity,
+                    localizacao: locationName
+                });
+
+            } catch (error) {
+                console.error(`Erro na linha ${rowNumber}:`, error);
+                results.errors.push({
+                    row: rowNumber,
+                    product: row[headers.indexOf('nome')] || 'N/A',
+                    errors: ['Erro interno do sistema']
+                });
+            }
+        }
+
+        await conn.commit();
+
+        // Limpar arquivo temporário
+        fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Erro ao deletar arquivo temporário:', err);
+        });
+
+        // Retornar relatório
+        res.json({
+            message: `Importação concluída! ${results.success} produtos importados com sucesso.`,
+            results: results,
+            summary: {
+                total: results.total,
+                success: results.success,
+                errors: results.errors.length,
+                warnings: results.warnings.length
+            }
+        });
+
+    } catch (error) {
+        await conn.rollback();
+        console.error('Erro na importação:', error);
+        
+        // Limpar arquivo temporário em caso de erro
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error('Erro ao deletar arquivo temporário:', err);
+            });
+        }
+        
+        res.status(500).json({ 
+            message: 'Erro interno durante a importação.',
+            error: error.message 
+        });
+    } finally {
+        conn.release();
     }
 });
 
