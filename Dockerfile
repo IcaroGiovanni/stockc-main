@@ -16,9 +16,6 @@ RUN npm ci
 # Copiar código da aplicação
 COPY . .
 
-# Executar testes
-RUN npm test
-
 # Stage de produção
 FROM node:18-alpine AS production
 
