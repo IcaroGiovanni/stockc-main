@@ -1281,3 +1281,31 @@ td.product-name {
     font-size: 16px; /* Previne zoom automático no iOS */
   }
 }
+
+@media (max-width: 600px) {
+  .glass-panel, .details-card, .main-header, .table-container, .locations-section, .activities-section {
+    padding: 8px !important;
+    border-radius: 10px !important;
+    margin: 0 2px !important;
+    box-sizing: border-box;
+  }
+  .logo-header img {
+    width: 56px !important;
+    height: 56px !important;
+  }
+  .premium-title, h1, h2, h3 {
+    font-size: 1.1rem !important;
+  }
+  .btn, .btn-primary, .btn-secondary {
+    width: 100% !important;
+    font-size: 1rem !important;
+    padding: 10px 0 !important;
+  }
+  .main-content, .product-modern-page {
+    padding: 0 !important;
+  }
+  .chart-container, .locations-grid, .activities-timeline {
+    overflow-x: auto !important;
+    max-width: 100vw !important;
+  }
+}
