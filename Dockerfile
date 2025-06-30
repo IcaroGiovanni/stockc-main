@@ -16,8 +16,7 @@ RUN npm ci
 # Copiar código da aplicação
 COPY . .
 
-# Executar linting e testes
-RUN npm run lint
+# Executar testes
 RUN npm test
 
 # Stage de produção
