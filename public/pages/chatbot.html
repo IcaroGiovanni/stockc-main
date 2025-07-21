@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot - StockCtrl</title>
+  <!-- Font Awesome para ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Estilos principais -->
+  <link rel="stylesheet" href="../css/estoque-moderno.css">
+  <link rel="stylesheet" href="../css/logo-animada.css">
+  <link rel="stylesheet" href="../css/chatbot-sidebar.css">
+  <style>
+    :root {
+      --chatbot-bg: #18181b;
+      --chatbot-border: #23232b;
+      --chatbot-bot: #facc15;
+      --chatbot-user: #1976d2;
+      --chatbot-user2: #3b82f6;
+    }
+    body {
+      background: var(--color-background, #0D0D0D);
+      color: var(--color-text, #E0E0E0);
+      font-family: 'Inter', Arial, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .chatbot-container {
+      max-width: 420px;
+      margin: 40px auto;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+      background: var(--chatbot-bg);
+      display: flex;
+      flex-direction: column;
+      height: 70vh;
+      min-height: 420px;
+      overflow: hidden;
+      border: 1px solid var(--chatbot-border);
+      transition: background 0.3s, color 0.3s;
+    }
+    .chatbot-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 24px 10px 24px;
+      background: linear-gradient(90deg, #23232b 60%, #1976d2 100%);
+      color: var(--chatbot-bot);
+      font-family: 'Orbitron', 'Inter', Arial, sans-serif;
+      font-size: 1.3rem;
+      font-weight: bold;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--chatbot-border);
+    }
+    .chatbot-logo {
+      font-size: 1.7rem;
+      color: var(--chatbot-bot);
+      animation: fadeIn 0.7s;
+    }
+    .chatbot-messages {
+      flex: 1;
+      padding: 18px 18px 0 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: transparent;
+      scroll-behavior: smooth;
+    }
+    .chatbot-message {
+      max-width: 80%;
+      padding: 12px 18px;
+      border-radius: 18px;
+      font-size: 15px;
+      word-break: break-word;
+      line-height: 1.5;
+      margin-bottom: 2px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeInMsg 0.4s forwards;
+    }
+    .chatbot-message.user {
+      align-self: flex-end;
+      background: linear-gradient(90deg, var(--chatbot-user) 80%, var(--chatbot-user2) 100%);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .chatbot-message.bot {
+      align-self: flex-start;
+      background: #23232b;
+      color: var(--chatbot-bot);
+      border-bottom-left-radius: 4px;
+    }
+    .chatbot-message.loading {
+      align-self: flex-start;
+      background: #23232b;
+      color: var(--chatbot-bot);
+      border-bottom-left-radius: 4px;
+      opacity: 0.7;
+      font-style: italic;
+      padding: 12px 18px;
+      border-radius: 18px;
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+    .chatbot-input-area {
+      display: flex;
+      padding: 16px 18px 18px 18px;
+      border-top: 1px solid var(--chatbot-border);
+      background: var(--chatbot-bg);
+      gap: 8px;
+    }
+    .chatbot-input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+      background: #23232b;
+      color: #fff;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+    .chatbot-input:focus {
+      border: 1.5px solid #1976d2;
+      box-shadow: 0 0 0 2px #1976d2aa;
+    }
+    .chatbot-send-btn {
+      background: linear-gradient(90deg, var(--chatbot-user) 80%, var(--chatbot-user2) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 22px;
+      font-size: 15px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(25,118,210,0.08);
+    }
+    .chatbot-send-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .chatbot-send-btn:focus {
+      outline: 2px solid var(--chatbot-bot);
+    }
+    @media (max-width: 600px) {
+      .chatbot-container {
+        max-width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+        min-height: 0;
+      }
+      .chatbot-header {
+        font-size: 1.1rem;
+        padding: 12px 10px 8px 10px;
+      }
+      .chatbot-messages {
+        padding: 10px 6px 0 6px;
+      }
+      .chatbot-input-area {
+        padding: 10px 6px 10px 6px;
+      }
+    }
+    @keyframes fadeInMsg {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <a href="/dashboard" class="chatbot-back-btn" style="
+    display: inline-block;
+    margin: 24px 0 0 24px;
+    padding: 8px 18px;
+    background: #23232b;
+    color: #facc15;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    transition: background 0.2s, color 0.2s;
+  " onmouseover="this.style.background='#facc15';this.style.color='#23232b'" onmouseout="this.style.background='#23232b';this.style.color='#facc15'">
+    ← Voltar
+  </a>
+  <div class="chatbot-wrapper">
+    <aside class="chatbot-sidebar">
+      <div class="chatbot-logo-area">
+        <span class="chatbot-logo" aria-label="Logo">🤖</span>
+        <span class="chatbot-title">StockCtrl</span>
+      </div>
+      <div class="chatbot-history" id="chatbot-history">
+        <h2>Histórico</h2>
+        <ul id="history-list">
+          <!-- Histórico de conversas será inserido aqui -->
+        </ul>
+      </div>
+    </aside>
+    <main class="chatbot-main">
+      <div class="chatbot-messages" id="chatbot-messages" role="log" aria-live="polite">
+        <!-- Mensagens serão inseridas aqui -->
+      </div>
+      <form class="chatbot-input-area" id="chatbot-form" autocomplete="off" aria-label="Enviar mensagem para o chatbot">
+        <input type="text" id="chatbot-input" class="chatbot-input" placeholder="Digite sua mensagem..." autocomplete="off" aria-label="Digite sua mensagem" maxlength="500" required />
+        <button type="submit" class="chatbot-send-btn" id="chatbot-send-btn" aria-label="Enviar mensagem">Enviar</button>
+      </form>
+    </main>
+  </div>
+  <script>
+    const messagesEl = document.getElementById('chatbot-messages');
+    const formEl = document.getElementById('chatbot-form');
+    const inputEl = document.getElementById('chatbot-input');
+    const sendBtn = document.getElementById('chatbot-send-btn');
+
+    let messages = [
+      { sender: 'bot', text: 'Olá! Como posso ajudar no controle de estoque hoje?' }
+    ];
+    let loading = false;
+
+    // Foco automático no input
+    inputEl.focus();
+
+    function renderMessages() {
+      messagesEl.innerHTML = '';
+      messages.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = 'chatbot-message ' + msg.sender;
+        div.setAttribute('tabindex', '0');
+        if (msg.sender === 'bot') {
+          div.innerHTML = msg.text;
+        } else {
+          div.textContent = msg.text;
+        }
+        messagesEl.appendChild(div);
+      });
+      if (loading) {
+        const div = document.createElement('div');
+        div.className = 'chatbot-message loading';
+        div.textContent = 'O bot está digitando...';
+        messagesEl.appendChild(div);
+      }
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addMessage(sender, text) {
+      messages.push({ sender, text });
+      renderMessages();
+    }
+
+    async function sendMessageToBackend(text) {
+      try {
+        const response = await fetch('/chatbot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        if (!response.ok) {
+          throw new Error('Erro ao consultar o bot.');
+        }
+        const data = await response.json();
+        return data.reply || 'Desculpe, não consegui gerar uma resposta.';
+      } catch (err) {
+        return 'Erro ao consultar o bot.';
+      }
+    }
+
+    formEl.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const text = inputEl.value.trim();
+      if (!text || loading) return;
+      addMessage('user', text);
+      inputEl.value = '';
+      loading = true;
+      renderMessages();
+      sendBtn.disabled = true;
+      const reply = await sendMessageToBackend(text);
+      loading = false;
+      addMessage('bot', reply);
+      sendBtn.disabled = false;
+      renderMessages();
+      inputEl.focus();
+    });
+
+    renderMessages();
+  </script>
+</body>
+</html> 

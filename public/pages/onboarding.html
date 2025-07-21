@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuração Inicial - StockCtrl</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/estoque-moderno.css">
+    <link rel="stylesheet" href="/css/login-moderno.css">
+</head>
+<body>
+    <div class="login-container onboarding-container">
+        <div class="glass-panel login-form-panel">
+            
+            <div class="onboarding-header">
+                <h1 class="premium-title">Configuração Inicial</h1>
+                <p>Vamos preparar sua empresa em 2 passos rápidos.</p>
+            </div>
+
+            <!-- Steps Indicator -->
+            <div class="steps-indicator">
+                <div class="step active" data-step="1">1</div>
+                <div class="step-line"></div>
+                <div class="step" data-step="2">2</div>
+                <div class="step-line"></div>
+                <div class="step" data-step="3">✓</div>
+            </div>
+
+            <form id="onboarding-form">
+                <!-- Etapa 1: Informações da Empresa -->
+                <div id="step-1" class="step-content active">
+                    <h2 class="step-title">Sobre sua Empresa</h2>
+                    <div class="form-group">
+                        <label for="nome">Nome da Empresa</label>
+                        <input type="text" id="nome" name="nome" class="neo-input" placeholder="Ex: Acme Corp" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nome_exibicao">Nome de Exibição na Sidebar</label>
+                        <input type="text" id="nome_exibicao" name="nome_exibicao" class="neo-input" placeholder="Ex: ACME">
+                    </div>
+                </div>
+
+                <!-- Etapa 2: Locais de Estoque -->
+                <div id="step-2" class="step-content">
+                    <h2 class="step-title">Defina seus Locais de Estoque</h2>
+                    <p class="step-subtitle">Crie os locais onde seus produtos serão armazenados. Ex: "Prateleira A", "Galpão", "Loja Principal".</p>
+                    <div id="locations-container" class="space-y-3 mb-4">
+                        <!-- Locais adicionados via JS -->
+                    </div>
+                    <button type="button" id="add-location-btn" class="btn-secondary w-full">
+                        <i class="fas fa-plus mr-2"></i>Adicionar Local
+                    </button>
+                </div>
+
+                <!-- Etapa 3: Finalização -->
+                <div id="step-3" class="step-content text-center">
+                    <i class="fas fa-check-circle final-icon"></i>
+                    <h2 class="step-title">Tudo Pronto!</h2>
+                    <p class="step-subtitle">Sua empresa foi configurada. Você está pronto para começar a gerenciar seu estoque.</p>
+                </div>
+            </form>
+
+            <!-- Navigation -->
+            <div class="navigation-buttons">
+                <button id="prev-btn" class="btn-cancel">Voltar</button>
+                <button id="next-btn" class="btn-submit">Avançar</button>
+                <button id="finish-btn" class="btn-submit hidden">Ir para o Dashboard</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast-container"></div>
+    <script src="/js/onboarding.js"></script>
+</body>
+</html>
+<style>
+.onboarding-container .login-form-panel { max-width: 550px; }
+.onboarding-header { text-align: center; margin-bottom: 30px; }
+.onboarding-header h1 { font-size: 2rem; }
+.onboarding-header p { color: #aaa; font-size: 1rem; }
+.steps-indicator { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+.step { width: 40px; height: 40px; border-radius: 50%; background: #222; border: 2px solid #333; color: #777; font-size: 18px; font-weight: bold; display: flex; justify-content: center; align-items: center; transition: all 0.4s ease; }
+.step.active { border-color: var(--color-accent); background: var(--color-accent); color: white; }
+.step-line { flex-grow: 1; height: 2px; background: #333; transition: all 0.4s ease; }
+.step-line.active { background: var(--color-accent); }
+.step-content { display: none; }
+.step-content.active { display: block; animation: fadeIn 0.5s; }
+.step-title { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; text-align: center; margin-bottom: 25px; color: white; }
+.step-subtitle { color: #aaa; text-align: center; font-size: 0.9rem; margin-bottom: 25px; max-width: 80%; margin-left: auto; margin-right: auto; line-height: 1.5; }
+.navigation-buttons { margin-top: 30px; display: flex; justify-content: space-between; border-top: 1px solid var(--color-glass-border); padding-top: 20px; }
+.w-full { width: 100%; }
+.mb-4 { margin-bottom: 1rem; }
+.space-y-3 > *:not([hidden]) ~ *:not([hidden]) { margin-top: 0.75rem; }
+.mr-2 { margin-right: 0.5rem; }
+.text-center { text-align: center; }
+.final-icon { font-size: 4rem; color: var(--color-accent); margin-bottom: 1rem; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style> 

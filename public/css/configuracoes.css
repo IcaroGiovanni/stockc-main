@@ -1,0 +1,144 @@
+.settings-section {
+    background-color: #1f2937; /* bg-gray-800 */
+    border-radius: 0.75rem; /* rounded-lg */
+    border: 1px solid #374151; /* border-gray-700 */
+    overflow: hidden;
+}
+
+.section-title {
+    padding: 1.5rem; /* p-6 */
+    font-size: 1.125rem; /* text-lg */
+    font-weight: 600; /* font-semibold */
+    color: #ffffff; /* text-white */
+    border-bottom: 1px solid #374151; /* border-b border-gray-700 */
+}
+
+.section-content {
+    padding: 1.5rem; /* p-6 */
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem; /* text-sm */
+    font-weight: 500;
+    color: #9ca3af; /* text-gray-400 */
+}
+
+.form-input {
+    width: 100%;
+    background-color: #374151; /* bg-gray-700 */
+    border: 1px solid #4b5563; /* border-gray-600 */
+    color: white;
+    font-size: 1rem;
+    border-radius: 0.5rem; /* rounded-md */
+    padding: 0.75rem 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #fbbf24; /* focus:border-primary-400 */
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3);
+}
+
+.btn {
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary {
+    background-color: #f59e0b; /* bg-primary-500 */
+    color: #111827;
+}
+
+.btn-primary:hover {
+    background-color: #d97706; /* hover:bg-primary-600 */
+}
+
+.btn-secondary {
+    background-color: #4b5563;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #6b7280;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    background-color: #374151;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+.radio-label input {
+    margin-right: 0.75rem;
+    accent-color: #fbbf24;
+}
+
+/* Estilos para o Toggle Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #4b5563; /* Cor do fundo do toggle desligado */
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #f59e0b; /* Cor primária */
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #f59e0b;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.hidden {
+    display: none;
+} 

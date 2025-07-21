@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produto - StockCtrl</title>
+    <link rel="stylesheet" href="/css/estoque-moderno.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/css/product-info.css">
+</head>
+<body class="product-modern-page">
+    <div class="logo-header" style="display:flex;justify-content:center;align-items:center;margin:16px 0;">
+        <img src="/uploads/logo.png" alt="Logo" style="width:72px;height:72px;border-radius:12px;object-fit:cover;background:#222;" onerror="this.style.display='none'">
+    </div>
+
+    <div id="loader" class="loader-container">
+        <div data-lucide="loader" class="animate-spin"></div>
+        <p>Carregando informações...</p>
+    </div>
+
+    <div id="error-container" class="error-container hidden">
+        <div data-lucide="alert-circle" class="error-icon"></div>
+        <h2 id="error-title">Produto não encontrado</h2>
+        <p id="error-message">O produto que você está procurando não existe ou foi movido.</p>
+        <a href="/estoque" class="btn-back">Voltar ao Estoque</a>
+    </div>
+
+    <div id="main-content" class="main-container hidden">
+        <!-- Header com ações -->
+        <div class="product-header">
+            <div class="product-image-container">
+                <img id="product-image" class="product-image" src="/img/placeholder-product.svg" alt="Imagem do Produto" />
+            </div>
+            <a href="/estoque" class="btn-icon" title="Voltar ao Estoque">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div class="product-title-group">
+                <h1 id="product-name" class="product-title"></h1>
+                <div class="product-badges">
+                    <span id="status-badge" class="status-badge"></span>
+                    <span id="edit-btn" class="edit-btn hidden" title="Editar Produto">
+                        <i class="fas fa-edit"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <!-- Status de Login -->
+                <div id="login-status" class="login-status">
+                    <div id="logged-in-indicator" class="logged-in-indicator hidden">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Logado</span>
+                    </div>
+                    <div id="login-form-container" class="login-form-container">
+                        <button id="show-login-btn" class="btn-login">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Fazer Login</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <button id="print-btn" class="btn-action" title="Imprimir">
+                    <i class="fas fa-print"></i>
+                </button>
+                <button id="qr-btn" class="btn-action" title="QR Code">
+                    <i class="fas fa-qrcode"></i>
+                </button>
+                <button id="share-btn" class="btn-action" title="Compartilhar">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Cards principais -->
+        <div class="product-stats-grid">
+            <div class="stat-card primary">
+                <div class="stat-icon">
+                    <i class="fas fa-box"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Quantidade Total</h3>
+                    <p id="info-total" class="stat-value">0</p>
+                </div>
+            </div>
+            <div class="stat-card secondary">
+                <div class="stat-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Localizações</h3>
+                    <p id="locations-count" class="stat-value">0</p>
+                </div>
+            </div>
+            <div class="stat-card accent">
+                <div class="stat-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Preço Unitário</h3>
+                    <p id="unit-price" class="stat-value">R$ 0,00</p>
+                </div>
+            </div>
+            <div class="stat-card info">
+                <div class="stat-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Movimentações</h3>
+                    <p id="movements-count" class="stat-value">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informações detalhadas -->
+        <div class="product-details-grid">
+            <div class="details-card">
+                <h3><i class="fas fa-info-circle"></i> Informações Gerais</h3>
+                <div class="details-list">
+                    <div class="detail-item">
+                        <span class="detail-label">SKU/Código:</span>
+                        <span id="product-sku" class="detail-value editable-field" data-field="sku">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Marca:</span>
+                        <span id="product-brand" class="detail-value editable-field" data-field="brand">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Descrição:</span>
+                        <span id="product-description" class="detail-value editable-field" data-field="description">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Criado em:</span>
+                        <span id="product-created" class="detail-value">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Última atualização:</span>
+                        <span id="product-updated" class="detail-value">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="details-card">
+                <h3><i class="fas fa-chart-pie"></i> Gráfico de Estoque</h3>
+                <div class="chart-container">
+                    <canvas id="stock-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Localizações -->
+        <div class="locations-section">
+            <div class="section-header">
+                <h2><i class="fas fa-map-marker-alt"></i> Localizações e Estoque</h2>
+                <div class="section-actions">
+                    <button id="add-location-btn" class="btn-secondary hidden">
+                        <i class="fas fa-plus-circle"></i> Adicionar Localização
+                    </button>
+                </div>
+            </div>
+            <div id="locations-list" class="locations-grid"></div>
+        </div>
+
+        <!-- Timeline de atividades -->
+        <div class="activities-section">
+            <h2><i class="fas fa-clock"></i> Histórico de Atividades</h2>
+            <div id="activities-list" class="activities-timeline"></div>
+        </div>
+
+        <!-- Modal de Login -->
+        <div id="login-modal" class="login-modal hidden">
+            <div class="login-modal-content">
+                <div class="login-header">
+                    <h3><i class="fas fa-sign-in-alt"></i> Fazer Login</h3>
+                    <button id="close-login-modal" class="btn-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form id="inline-login-form">
+                    <div class="login-form-group">
+                        <label for="login-username">Usuário</label>
+                        <input type="text" id="login-username" class="neo-input" required />
+                    </div>
+                    <div class="login-form-group">
+                        <label for="login-password">Senha</label>
+                        <input type="password" id="login-password" class="neo-input" required />
+                    </div>
+                    <div class="login-actions">
+                        <button type="submit" class="btn-save">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </button>
+                        <button type="button" id="cancel-login" class="btn-cancel">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Painel de edição -->
+        <div id="edit-panel" class="edit-panel hidden">
+            <div class="edit-header">
+                <h3><i class="fas fa-edit"></i> Editar Produto</h3>
+                <button id="close-edit" class="btn-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="edit-form">
+                <div class="edit-grid">
+                    <div class="edit-group">
+                        <label for="edit-name">Nome do Produto</label>
+                        <input type="text" id="edit-name" class="neo-input" required />
+                    </div>
+                    <div class="edit-group">
+                        <label for="edit-sku">SKU/Código</label>
+                        <input type="text" id="edit-sku" class="neo-input" />
+                    </div>
+                    <div class="edit-group">
+                        <label for="edit-brand">Marca</label>
+                        <input type="text" id="edit-brand" class="neo-input" />
+                    </div>
+                    <div class="edit-group">
+                        <label for="edit-price">Preço Unitário</label>
+                        <input type="number" id="edit-price" class="neo-input" step="0.01" min="0" />
+                    </div>
+                    <div class="edit-group full-width">
+                        <label for="edit-description">Descrição</label>
+                        <textarea id="edit-description" class="neo-input" rows="3"></textarea>
+                    </div>
+                </div>
+                
+                <div class="edit-locations-section">
+                    <h4>Localizações e Quantidades</h4>
+                    <div id="edit-locations-list" class="edit-locations-grid"></div>
+                </div>
+                
+                <div class="edit-actions">
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-check"></i> Salvar Alterações
+                    </button>
+                    <button type="button" id="cancel-edit" class="btn-cancel">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPTS FINAIS -->
+    <script src="/js/produto.js"></script>
+</body>
+</html>
+<style>
+:root {
+    --color-background-dark: #111827;
+    --color-panel-bg: rgba(31, 41, 55, 0.5);
+    --color-panel-border: rgba(251, 191, 36, 0.2);
+    --color-accent: #fbbf24;
+    --color-accent-blue: #3b82f6;
+    --color-text-primary: #f3f4f6;
+    --color-text-secondary: #9ca3af;
+    --color-text-label: #a5b4fc;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+}
+
+.product-modern-page {
+    background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+    padding: 2rem 0;
+}
+
+.main-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* Header */
+.product-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    background: var(--color-panel-bg);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.product-title-group {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.product-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    margin: 0;
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+}
+
+.product-badges {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.active {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--color-success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-badge.inactive {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--color-danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.edit-btn {
+    color: var(--color-accent-blue);
+    background: rgba(59, 130, 246, 0.12);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    font-size: 1.2rem;
+}
+
+.edit-btn:hover {
+    background: rgba(59, 130, 246, 0.22);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-action {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    font-size: 1.2rem;
+}
+
+.btn-action:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Stats Grid */
+.product-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: var(--color-panel-bg);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.stat-card.primary {
+    border-left: 4px solid var(--color-accent);
+}
+
+.stat-card.secondary {
+    border-left: 4px solid var(--color-accent-blue);
+}
+
+.stat-card.accent {
+    border-left: 4px solid var(--color-success);
+}
+
+.stat-card.info {
+    border-left: 4px solid var(--color-warning);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: var(--color-accent);
+    background: rgba(251, 191, 36, 0.1);
+}
+
+.stat-content h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.stat-value {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+/* Details Grid */
+.product-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.details-card {
+    background: var(--color-panel-bg);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.details-card h3 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.3rem;
+    color: var(--color-accent);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.details-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.detail-value {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+.chart-container {
+    height: 200px;
+    position: relative;
+}
+
+/* Locations Section */
+.locations-section {
+    margin-bottom: 3rem;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.section-header h2 {
+    font-size: 1.5rem;
+    color: var(--color-accent-blue);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-secondary {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: var(--color-accent-blue);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.btn-secondary:hover {
+    background: rgba(59, 130, 246, 0.2);
+    transform: translateY(-2px);
+}
+
+.locations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.location-card {
+    background: var(--color-panel-bg);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.location-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.location-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.location-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.location-quantity {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-accent-blue);
+}
+
+.location-sublocation {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Activities Section */
+.activities-section {
+    margin-bottom: 3rem;
+}
+
+.activities-section h2 {
+    font-size: 1.5rem;
+    color: var(--color-accent-blue);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.activities-timeline {
+    background: var(--color-panel-bg);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(251, 191, 36, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-accent);
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-title {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.activity-user {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+}
+
+.activity-time {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+
+/* Edit Panel */
+.edit-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 2rem;
+}
+
+.edit-panel.hidden {
+    display: none;
+}
+
+.edit-panel > div {
+    background: var(--color-panel-bg);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.edit-header h3 {
+    margin: 0;
+    color: var(--color-accent);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 1.5rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-primary);
+}
+
+.edit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.edit-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.edit-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--color-accent);
+    font-weight: 500;
+}
+
+.neo-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.neo-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+}
+
+.edit-locations-section {
+    margin-bottom: 2rem;
+}
+
+.edit-locations-section h4 {
+    color: var(--color-accent-blue);
+    margin-bottom: 1rem;
+}
+
+.edit-locations-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.edit-location-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.edit-location-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.edit-location-input {
+    width: 120px;
+}
+
+.edit-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn-save {
+    background: var(--color-accent);
+    color: #23283a;
+    border: none;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-save:hover {
+    background: #ffe066;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+}
+
+.btn-cancel {
+    background: transparent;
+    color: var(--color-accent-blue);
+    border: 1px solid var(--color-accent-blue);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-cancel:hover {
+    background: rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main-container {
+        padding: 0 1rem;
+    }
+    
+    .product-header {
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+    
+    .product-title-group {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .product-title {
+        font-size: 2rem;
+    }
+    
+    .product-image {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .product-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1.5rem;
+    }
+    
+    .details-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .locations-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .location-card {
+        padding: 1rem;
+    }
+    
+    .location-quantity-section {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .activities-timeline {
+        padding: 1rem;
+    }
+    
+    .activity-item {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .edit-panel {
+        padding: 1rem;
+    }
+    
+    .edit-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .edit-locations-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+/* Smartphones */
+@media (max-width: 480px) {
+    .main-container {
+        padding: 0 0.5rem;
+    }
+    
+    .product-header {
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .product-title {
+        font-size: 1.5rem;
+    }
+    
+    .product-image {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .product-badges {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .status-badge {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+    
+    .edit-btn {
+        padding: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .btn-action {
+        padding: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .stat-card .stat-icon {
+        font-size: 2rem;
+    }
+    
+    .stat-card .stat-info h3 {
+        font-size: 1.5rem;
+    }
+    
+    .stat-card .stat-info p {
+        font-size: 0.9rem;
+    }
+    
+    .details-card {
+        padding: 1rem;
+    }
+    
+    .details-card h3 {
+        font-size: 1.2rem;
+    }
+    
+    .details-grid {
+        gap: 0.5rem;
+    }
+    
+    .detail-item {
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    
+    .detail-label {
+        font-size: 0.8rem;
+    }
+    
+    .detail-value {
+        font-size: 1rem;
+    }
+    
+    .locations-section {
+        padding: 1rem;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .section-header h2 {
+        font-size: 1.3rem;
+    }
+    
+    .location-card {
+        padding: 0.8rem;
+    }
+    
+    .location-name {
+        font-size: 1rem;
+    }
+    
+    .location-quantity {
+        font-size: 1.5rem;
+    }
+    
+    .activities-section {
+        padding: 1rem;
+    }
+    
+    .activities-section h2 {
+        font-size: 1.3rem;
+    }
+    
+    .activity-item {
+        padding: 0.8rem;
+    }
+    
+    .activity-title {
+        font-size: 0.9rem;
+    }
+    
+    .activity-user {
+        font-size: 0.8rem;
+    }
+    
+    .activity-time {
+        font-size: 0.7rem;
+    }
+    
+    .edit-panel {
+        padding: 0.8rem;
+    }
+    
+    .edit-panel h3 {
+        font-size: 1.2rem;
+    }
+    
+    .edit-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .btn-save, .btn-cancel {
+        padding: 0.8rem;
+        font-size: 0.9rem;
+    }
+    
+    .login-modal-content {
+        padding: 1rem;
+        margin: 1rem;
+    }
+    
+    .login-header h3 {
+        font-size: 1.2rem;
+    }
+    
+    .login-form-group label {
+        font-size: 0.9rem;
+    }
+    
+    .login-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Smartphones muito pequenos */
+@media (max-width: 360px) {
+    .product-title {
+        font-size: 1.3rem;
+    }
+    
+    .product-image {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .stat-card .stat-info h3 {
+        font-size: 1.3rem;
+    }
+    
+    .location-quantity {
+        font-size: 1.3rem;
+    }
+    
+    .btn-action {
+        padding: 0.4rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.stat-card, .details-card, .location-card {
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(251, 191, 36, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(251, 191, 36, 0.5);
+}
+
+/* Login Status */
+.login-status {
+    display: flex;
+    align-items: center;
+}
+
+.logged-in-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 0.75rem;
+    color: var(--color-success);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.logged-in-indicator i {
+    font-size: 1.1rem;
+}
+
+.btn-login {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: var(--color-accent-blue);
+    border-radius: 0.75rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.btn-login:hover {
+    background: rgba(59, 130, 246, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Login Modal */
+.login-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 2rem;
+}
+
+.login-modal.hidden {
+    display: none;
+}
+
+.login-modal-content {
+    background: var(--color-panel-bg);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.login-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.login-header h3 {
+    margin: 0;
+    color: var(--color-accent);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.login-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.login-form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--color-accent);
+    font-weight: 500;
+}
+
+.login-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+/* Location Cards com Edição */
+.location-card {
+    background: var(--color-panel-bg);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.location-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.location-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.location-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.location-quantity-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.location-quantity {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-accent-blue);
+}
+
+.location-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-edit-qty {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: var(--color-accent);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.btn-edit-qty:hover {
+    background: rgba(251, 191, 36, 0.2);
+    transform: translateY(-1px);
+}
+
+.quantity-edit-mode {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.quantity-input {
+    width: 80px;
+    padding: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    text-align: center;
+}
+
+.quantity-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.1);
+}
+
+.btn-save-qty {
+    background: var(--color-success);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.btn-save-qty:hover {
+    background: #059669;
+    transform: translateY(-1px);
+}
+
+.btn-cancel-qty {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--color-danger);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.btn-cancel-qty:hover {
+    background: rgba(239, 68, 68, 0.2);
+    transform: translateY(-1px);
+}
+
+.location-sublocation {
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Edição Inline de Campos de Texto */
+.editable-field.editable-enabled {
+    cursor: pointer;
+    border-bottom: 1px dashed var(--color-accent-blue);
+    transition: border 0.2s;
+}
+.editable-field.editable-enabled:hover {
+    background: rgba(59,130,246,0.08);
+    border-bottom: 1px solid var(--color-accent-blue);
+}
+.editable-field.editing {
+    background: rgba(59,130,246,0.12);
+    border-radius: 0.5rem;
+    padding: 0.2rem 0.5rem;
+}
+.inline-edit-input {
+    background: var(--color-panel-bg);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-accent-blue);
+    border-radius: 0.4rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 1rem;
+    margin-right: 0.5rem;
+    width: 60%;
+}
+.btn-save-inline, .btn-cancel-inline {
+    background: none;
+    border: none;
+    color: var(--color-accent-blue);
+    font-size: 1.1rem;
+    margin-left: 0.2rem;
+    cursor: pointer;
+    padding: 0.2rem;
+    border-radius: 0.3rem;
+    transition: background 0.2s;
+}
+.btn-save-inline:hover {
+    background: var(--color-success);
+    color: #fff;
+}
+.btn-cancel-inline:hover {
+    background: var(--color-danger);
+    color: #fff;
+}
+
+/* Imagem do Produto */
+.product-image-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 2rem;
+    gap: 0.5rem;
+}
+.product-image {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 50%;
+    box-shadow: 0 4px 24px rgba(59,130,246,0.15), 0 1.5px 6px rgba(251,191,36,0.10);
+    border: 3px solid var(--color-accent-blue);
+    background: #232b36;
+}
+</style> 
