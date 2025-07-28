@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       formEmpresa.querySelector('#company_nome_exibicao').value = empresa.nome_exibicao || '';
     }
     if (logoPreview) {
-      logoPreview.src = empresa.logo || './assets/default-logo.png'; // Fallback
+      logoPreview.src = empresa.logo || '/img/default-logo.svg'; // Fallback para logo padrão
     }
     if (formRegras) {
       formRegras.querySelector('#allow_duplicate_names').checked = !!empresa.allow_duplicate_names;

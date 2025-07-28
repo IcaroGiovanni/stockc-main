@@ -99,6 +99,15 @@ body::before {
   color: var(--color-accent);
 }
 
+.sidebar .company-logo {
+  display: block;
+  max-height: 40px;
+  max-width: 100%;
+  margin-bottom: 5px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .sidebar .logo-company-name {
   font-family: 'Orbitron', sans-serif;
   font-weight: 500;
@@ -275,6 +284,17 @@ body::before {
   outline: none;
   border-color: var(--color-accent);
   box-shadow: 0 0 15px rgba(250, 204, 21, 0.2);
+}
+
+.neo-input:disabled {
+  background-color: rgba(30, 41, 59, 0.3);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.neo-input:disabled::placeholder {
+  color: var(--color-text-secondary);
 }
 
 /* Tabela */
@@ -564,7 +584,7 @@ td.product-name {
     text-align: center;
     font-size: 1rem;
     font-weight: 700;
-    color: #ccc;
+    color: black; /* Alterado de var(--color-accent) para preto */
     font-family: 'Orbitron', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -747,7 +767,7 @@ td.product-name {
 .qr-info-product-name {
   font-size: 1.1rem;
   font-weight: bold;
-  color: var(--color-accent);
+  color: black; /* Alterado de var(--color-accent) para preto */
   margin-bottom: 0.75rem;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.5rem;
@@ -1389,4 +1409,12 @@ td.product-name {
   border: none;
   color: inherit;
   box-shadow: none;
+} 
+/* Centraliza e destaca o nome do produto na página de produto */
+.product-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2.5rem;
 }
+

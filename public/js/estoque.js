@@ -1,3 +1,4 @@
+console.log('### estoque.js está sendo executado! ###');
 console.log('[DEBUG] estoque.js carregado');
 document.addEventListener('DOMContentLoaded', () => {
   // --- Seletores de Elementos ---
@@ -111,8 +112,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const errorData = await response.json().catch(() => ({ message: 'Erro de comunicação com o servidor.' }));
         throw new Error(errorData.message);
       }
+      const responseText = await response.text();
+      console.log('[DEBUG] Resposta bruta da API:', responseText);
       if (response.status === 204) return null; // No content
-      return response.json();
+      return JSON.parse(responseText);
     } finally {
       showLoader(false);
     }
@@ -162,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const renderTable = (products) => {
+    console.log('[DEBUG] renderTable - produtos para renderizar:', products);
     console.log('DEBUG: Produtos recebidos da API:', products);
     inventoryTableBody.innerHTML = '';
     if (!Array.isArray(products) || !products.length) {
@@ -172,17 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // DEBUG: Mostra o produto individual
       console.log('DEBUG: Produto individual:', product);
       // Tenta extrair locations de diferentes formas possíveis
-      let locations = [];
-      if (Array.isArray(product.locations)) {
-        locations = product.locations;
-      } else if (product.quantities_by_location && typeof product.quantities_by_location === 'object') {
-        // Caso venha como objeto de localizações
-        locations = Object.entries(product.quantities_by_location).map(([key, val]) => ({
-          name: key,
-          quantity: val.quantity || 0,
-          sub_location: val.sub_location || ''
-        }));
-      }
+      const locations = Array.isArray(product.locations) ? product.locations : [];
       // Monta string de localizações e quantidades corretamente
       let locString = 'Sem estoque';
       if (Array.isArray(locations) && locations.length > 0) {
@@ -213,8 +207,9 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const filterAndRender = () => {
+    console.log('[DEBUG] filterAndRender - allProducts:', allProducts);
     const searchTerm = searchInput.value.toLowerCase();
-    const filtered = allProducts.filter(p => p.name.toLowerCase().includes(searchTerm));
+    const filtered = allProducts.filter(p => (p.name || '').toLowerCase().includes(searchTerm));
     sortProducts(); // Garante que a ordenação seja aplicada antes de renderizar
     renderTable(filtered);
     totalValueEl.textContent = filtered.length;
@@ -235,20 +230,25 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('[DEBUG] product.locations:', product.locations);
       console.log('[DEBUG] product.quantities_by_location:', product.quantities_by_location);
       
+      // Definir valores dos campos do formulário
+      document.getElementById('product-id').value = product.id;
+      document.getElementById('product-name').value = product.name || '';
+      
+      // Desabilitar edição do nome do produto
+      document.getElementById('product-name').disabled = true;
+      
       // Converter locations array para quantities_by_location object
       let quantities = {};
-      if (product.quantities_by_location) {
-        // Se já existe quantities_by_location, usar diretamente
-        quantities = product.quantities_by_location;
-        console.log('[DEBUG] Usando quantities_by_location existente:', quantities);
-      } else if (product.locations && Array.isArray(product.locations)) {
-        // Converter locations array para quantities_by_location
+      if (product.locations && Array.isArray(product.locations)) {
         console.log('[DEBUG] Convertendo locations array para quantities_by_location');
         product.locations.forEach(loc => {
-          quantities[String(loc.location_id)] = {
-            quantity: loc.quantity || 0,
-            sub_location: loc.sub_location || ''
-          };
+          const locationDef = locationDefinitions.find(l => l.name === loc.name);
+          if (locationDef) {
+            quantities[String(locationDef.id)] = {
+              quantity: loc.quantity || 0,
+              sub_location: loc.sub_location || ''
+            };
+          }
         });
       }
       
@@ -258,6 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('[DEBUG] Modal aberto para novo produto');
       document.getElementById('product-id').value = '';
       document.getElementById('product-name').value = '';
+      
+      // Habilitar edição do nome do produto para novos produtos
+      document.getElementById('product-name').disabled = false;
+      
       renderLocations({});
     }
     
@@ -490,8 +494,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           console.debug('[DEBUG] Input de escrita ocultado');
         }
-      } else {
-        console.error('[ERROR] Container de edição não encontrado');
       }
     });
   } else {
@@ -587,7 +589,8 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('[DEBUG] Location definitions processadas:', locationDefinitions);
       
       companyLogoUrl = empresa.logo || null;
-      allProducts = products;
+      allProducts = products || [];
+      console.log('[DEBUG] allProducts após inicialização:', allProducts);
       totalValueEl.textContent = allProducts.length;
 
       // Verifica se há um produto para editar na URL
@@ -661,10 +664,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       if (isEditing) {
-        const { name, ...updatePayload } = payload;
         await apiFetch(`/api/products/${id}`, {
           method: 'PUT',
-          body: JSON.stringify(updatePayload),
+          body: JSON.stringify(payload),
         });
         showToast('Produto atualizado com sucesso!', 'success');
       } else {

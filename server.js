@@ -10,8 +10,129 @@ const multer = require('multer');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
 const XLSX = require('xlsx');
+const { exec } = require('child_process');
+const which = require('which'); // Adiciona dependência para checar binários no PATH
 
 const app = express();
+
+// --- Sistema de Backup Automático ---
+const backupDir = path.join(__dirname, 'backups');
+if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir);
+    console.log('📁 Pasta de backups criada:', backupDir);
+}
+
+// Configurações do backup
+const backupConfig = {
+    database: 'stock_control',
+    user: 'root',
+    password: '',
+    host: 'localhost',
+    backupInterval: 60000, // 1 minuto em millisegundos
+    maxBackups: 10, // Manter apenas os últimos 10 backups
+    backupPrefix: 'stock_backup_'
+};
+
+// Função utilitária para encontrar o mysqldump
+function getMysqlDumpPath() {
+    // Permite sobrescrever via variável de ambiente
+    if (process.env.MYSQLDUMP_PATH && fs.existsSync(process.env.MYSQLDUMP_PATH)) {
+        return process.env.MYSQLDUMP_PATH;
+    }
+    try {
+        // Tenta encontrar no PATH
+        return which.sync('mysqldump');
+    } catch (e) {
+        return null;
+    }
+}
+
+// Função para criar backup do banco de dados
+async function createDatabaseBackup() {
+    const mysqldumpPath = getMysqlDumpPath();
+    if (!mysqldumpPath) {
+        const msg = 'mysqldump não encontrado no PATH do sistema. Instale o MySQL Client ou defina a variável de ambiente MYSQLDUMP_PATH com o caminho completo.';
+        console.error('❌', msg);
+        throw new Error(msg);
+    }
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFileName = `${backupConfig.backupPrefix}${timestamp}.sql`;
+    const backupPath = path.join(backupDir, backupFileName);
+    
+    const mysqldumpCommand = `"${mysqldumpPath}" -h ${backupConfig.host} -u ${backupConfig.user} ${backupConfig.password ? `-p${backupConfig.password}` : ''} ${backupConfig.database} > "${backupPath}"`;
+    
+    return new Promise((resolve, reject) => {
+        exec(mysqldumpCommand, (error, stdout, stderr) => {
+            if (error) {
+                console.error('❌ Erro ao criar backup:', error);
+                // Remove arquivo vazio se criado
+                if (fs.existsSync(backupPath) && fs.statSync(backupPath).size === 0) {
+                    fs.unlinkSync(backupPath);
+                }
+                reject(error);
+                return;
+            }
+            // Verificar se o arquivo foi criado e tem tamanho > 0
+            if (fs.existsSync(backupPath) && fs.statSync(backupPath).size > 0) {
+                console.log(`✅ Backup criado com sucesso: ${backupFileName}`);
+                // Limpar backups antigos
+                cleanupOldBackups();
+                resolve(backupPath);
+            } else {
+                console.error('❌ Backup não foi criado corretamente');
+                if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath);
+                reject(new Error('Backup não foi criado corretamente'));
+            }
+        });
+    });
+}
+
+// Função para limpar backups antigos
+function cleanupOldBackups() {
+    try {
+        const files = fs.readdirSync(backupDir)
+            .filter(file => file.startsWith(backupConfig.backupPrefix) && file.endsWith('.sql'))
+            .map(file => ({
+                name: file,
+                path: path.join(backupDir, file),
+                time: fs.statSync(path.join(backupDir, file)).mtime.getTime()
+            }))
+            .sort((a, b) => b.time - a.time); // Ordenar por data (mais recente primeiro)
+        
+        // Manter apenas os últimos maxBackups
+        if (files.length > backupConfig.maxBackups) {
+            const filesToDelete = files.slice(backupConfig.maxBackups);
+            filesToDelete.forEach(file => {
+                fs.unlinkSync(file.path);
+                console.log(`🗑️ Backup antigo removido: ${file.name}`);
+            });
+        }
+    } catch (error) {
+        console.error('❌ Erro ao limpar backups antigos:', error);
+    }
+}
+
+// Função para iniciar o sistema de backup automático
+function startAutoBackup() {
+    console.log('🔄 Sistema de backup automático iniciado');
+    console.log(`⏰ Intervalo: ${backupConfig.backupInterval / 1000} segundos`);
+    console.log(`📁 Pasta de backups: ${backupDir}`);
+    console.log(`💾 Máximo de backups: ${backupConfig.maxBackups}`);
+    
+    // Criar primeiro backup imediatamente
+    createDatabaseBackup().catch(error => {
+        console.error('❌ Erro no primeiro backup:', error);
+    });
+    
+    // Configurar backup automático a cada 1 minuto
+    setInterval(async () => {
+        try {
+            await createDatabaseBackup();
+        } catch (error) {
+            console.error('❌ Erro no backup automático:', error);
+        }
+    }, backupConfig.backupInterval);
+}
 
 // --- Configuração do Nodemailer (com Ethereal para teste) ---
 let transporter;
@@ -98,6 +219,7 @@ app.get('/usuarios', (req, res) => res.sendFile(path.join(__dirname, 'public', '
 app.get('/estoque', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'estoque.html')));
 app.get('/logs', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'logs.html')));
 app.get('/produto/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'produto.html')));
+app.get('/backups', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'backups.html')));
 app.get('/onboarding', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'onboarding.html')));
 app.get('/configuracoes', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pages', 'configuracoes.html')));
 
@@ -318,8 +440,8 @@ app.post('/register', authenticateToken, authorizeRole(['diretor']), async (req,
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         const query = 'INSERT INTO users (username, password, email, full_name, role, empresa_id) VALUES (?, ?, ?, ?, ?, ?)';
         
-        await pool.query(query, [username, hashedPassword, email, full_name, role, empresaId]);
-        await logActivity(empresaId, req.user, 'CRIOU_USUARIO', { nome: full_name, username, role });
+        const [result] = await pool.query(query, [username, hashedPassword, email, full_name, role, empresaId]);
+        await logActivity(empresaId, req.user, 'CRIAR_USUARIO', { usuarioId: result.insertId, nome: full_name, username, role });
         res.status(201).json({ message: 'Usuário registrado com sucesso!' });
     } catch (error) {
         console.error('Erro ao gerar hash da senha:', error);
@@ -352,25 +474,24 @@ app.get('/api/users/:id', authenticateToken, async (req, res) => {
     }
 });
 
-app.put('/api/users/:id', authenticateToken, authorizeRole(['diretor']), (req, res) => {
+app.put('/api/users/:id', authenticateToken, authorizeRole(['diretor']), async (req, res) => {
     const { full_name, username, email, role } = req.body;
     const { id } = req.params;
     const empresaId = req.user.empresa_id;
-    pool.query(
-        'UPDATE users SET full_name=?, username=?, email=?, role=? WHERE id=? AND empresa_id=?',
-        [full_name, username, email, role, id, empresaId],
-        (err, result) => {
-            if (err) {
-                console.error('Erro ao editar usuário:', err);
-                return res.status(500).json({ message: 'Erro ao editar usuário.', error: err });
-            }
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ message: 'Usuário não encontrado.' });
-            }
-            logActivity(empresaId, req.user, 'EDITOU_USUARIO', { usuarioId: id, dados: req.body });
-            res.json({ message: 'Usuário atualizado com sucesso!' });
+    try {
+        const [result] = await pool.query(
+            'UPDATE users SET full_name=?, username=?, email=?, role=? WHERE id=? AND empresa_id=?',
+            [full_name, username, email, role, id, empresaId]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
         }
-    );
+        await logActivity(empresaId, req.user, 'ATUALIZAR_USUARIO', { usuarioId: id, dados: req.body });
+        res.json({ message: 'Usuário atualizado com sucesso!' });
+    } catch (err) {
+        console.error('Erro ao editar usuário:', err);
+        res.status(500).json({ message: 'Erro ao editar usuário.', error: err });
+    }
 });
 
 app.put('/api/users/:id/password', authenticateToken, authorizeRole(['diretor']), async (req, res) => {
@@ -388,33 +509,32 @@ app.put('/api/users/:id/password', authenticateToken, authorizeRole(['diretor'])
     
     try {
         const hashedPassword = await bcrypt.hash(password, saltRounds);
-        pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, id], (err, result) => {
-            if (err) {
-                console.error('Erro ao atualizar senha:', err);
-                return res.status(500).json({ message: 'Erro interno ao atualizar a senha.' });
-            }
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ message: 'Usuário não encontrado.' });
-            }
-            res.json({ message: 'Senha atualizada com sucesso!' });
-        });
+        const [result] = await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, id]);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
+        }
+        res.json({ message: 'Senha atualizada com sucesso!' });
     } catch (error) {
-        console.error('Erro ao gerar hash da nova senha:', error);
+        console.error('Erro ao atualizar senha:', error);
         res.status(500).json({ message: 'Erro interno do servidor.' });
     }
 });
 
-app.delete('/api/users/:id', authenticateToken, authorizeRole(['diretor']), (req, res) => {
+app.delete('/api/users/:id', authenticateToken, authorizeRole(['diretor']), async (req, res) => {
     const { id } = req.params;
     const empresaId = req.user.empresa_id;
-    pool.query('DELETE FROM users WHERE id=? AND empresa_id=?', [id, empresaId], (err, result) => {
-        if (err) {
-            console.error('Erro ao apagar usuário:', err);
-            return res.status(500).json({ message: 'Erro ao apagar usuário.' });
+    try {
+        const [result] = await pool.query('DELETE FROM users WHERE id=? AND empresa_id=?', [id, empresaId]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
         }
-        logActivity(empresaId, req.user, 'APAGOU_USUARIO', { usuarioId: id });
+        await logActivity(empresaId, req.user, 'EXCLUIR_USUARIO', { usuarioId: id });
         res.json({ message: 'Usuário apagado com sucesso!' });
-    });
+    } catch (err) {
+        console.error('Erro ao apagar usuário:', err);
+        return res.status(500).json({ message: 'Erro ao apagar usuário.' });
+    }
 });
 
 // --- CRUD de Produtos ---
@@ -422,29 +542,56 @@ app.delete('/api/users/:id', authenticateToken, authorizeRole(['diretor']), (req
 app.get('/api/products', authenticateToken, async (req, res) => {
     try {
         const { empresa_id } = req.user;
-        // Busca todos os produtos da empresa
-        const [products] = await pool.query(`SELECT * FROM products WHERE empresa_id = ?`, [empresa_id]);
-        // Busca todas as localizações de produtos da empresa
-        const [locations] = await pool.query(`SELECT pl.product_id, l.name as location_name, pl.quantity, pl.sub_location FROM product_locations pl JOIN locations l ON pl.location_id = l.id WHERE pl.empresa_id = ?`, [empresa_id]);
-        // Monta o array de produtos com locations
+        const query = `
+            SELECT 
+                p.id, 
+                p.name, 
+                p.description,
+                p.sku,
+                p.category_id,
+                p.brand,
+                p.unit_price,
+                p.min_quantity,
+                p.max_quantity,
+                p.supplier_id,
+                p.barcode,
+                p.is_active,
+                p.created_at, 
+                p.updated_at
+            FROM products p
+            WHERE p.empresa_id = ?
+            ORDER BY p.name;
+        `;
+        const [products] = await pool.query(query, [empresa_id]);
+
+        // Fetch product locations separately
+        const [productLocations] = await pool.query(`
+            SELECT 
+                pl.product_id,
+                pl.quantity,
+                pl.sub_location,
+                l.name as location_name
+            FROM product_locations pl
+            JOIN locations l ON pl.location_id = l.id
+            WHERE pl.empresa_id = ?;
+        `, [empresa_id]);
+
+        // Map locations to products
         const productsWithLocations = products.map(product => {
-            const locs = locations.filter(loc => loc.product_id === product.id).map(loc => ({
-                name: loc.location_name || 'Sem localização',
-                quantity: loc.quantity || 0,
-                sub_location: loc.sub_location || ''
-            }));
-            return {
-                id: product.id,
-                name: product.name || 'Sem nome',
-                locations: locs,
-                created_at: product.created_at,
-                updated_at: product.updated_at
-            };
+            const locations = productLocations
+                .filter(pl => pl.product_id === product.id)
+                .map(pl => ({
+                    name: pl.location_name,
+                    quantity: pl.quantity,
+                    sub_location: pl.sub_location
+                }));
+            return { ...product, locations };
         });
+
         res.json(productsWithLocations);
     } catch (error) {
         console.error('Erro ao listar produtos:', error);
-        res.status(500).json({ message: 'Erro ao listar produtos.' });
+        res.status(500).json({ message: 'Erro ao listar produtos.', error: error.message });
     }
 });
 
@@ -518,6 +665,8 @@ app.post('/api/products', authenticateToken, async (req, res) => {
             }
         }
         await conn.commit();
+        // Log de criação de produto
+        await logActivity(empresa_id, req.user, 'CRIAR_PRODUTO', { produtoId: productId, nome: name, dados: req.body });
         res.status(201).json({ message: 'Produto criado com sucesso!' });
     } catch (error) {
         await conn.rollback();
@@ -560,6 +709,8 @@ app.put('/api/products/:id', authenticateToken, async (req, res) => {
             }
         }
         await conn.commit();
+        // Log de atualização de produto
+        await logActivity(empresa_id, req.user, 'ATUALIZAR_PRODUTO', { produtoId: id, nome: name, dados: req.body });
         res.json({ message: 'Produto atualizado com sucesso!' });
     } catch (error) {
         await conn.rollback();
@@ -582,7 +733,8 @@ app.delete('/api/products/:id', authenticateToken, async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Produto não encontrado.' });
         }
-        logActivity(empresaId, req.user, 'APAGOU_PRODUTO', { produtoId: id });
+        // Log de exclusão de produto
+        await logActivity(empresaId, req.user, 'EXCLUIR_PRODUTO', { produtoId: id });
         res.json({ message: 'Produto apagado com sucesso!' });
     } catch (error) {
         if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.errno === 1451) {
@@ -771,6 +923,9 @@ app.post('/api/products/import', authenticateToken, upload.single('excel'), asyn
             }
         });
 
+        // Log de importação de produtos
+        await logActivity(empresa_id, req.user, 'IMPORTAR_PRODUTOS', { quantidade: results.success, detalhes: results });
+
     } catch (error) {
         await conn.rollback();
         console.error('Erro na importação:', error);
@@ -800,6 +955,10 @@ app.get('/api/empresa', authenticateToken, async (req, res) => {
         }
         
         const empresa = empresaRows[0];
+        // Verificar se a empresa tem logo, caso contrário usar a logo padrão
+        if (!empresa.logo_url) {
+            empresa.logo_url = '/img/default-logo.svg';
+        }
         empresa.logo = empresa.logo_url; // Compatibilidade com frontend
         // Buscar localizações da empresa
         const [locationRows] = await pool.query(
@@ -876,19 +1035,55 @@ app.put('/api/empresa', authenticateToken, authorizeRole(['diretor']), async (re
         
         // Processar location_definitions se fornecido
         if (location_definitions && Array.isArray(location_definitions)) {
-            // Remover localizações existentes
-            await conn.query('DELETE FROM locations WHERE empresa_id = ?', [empresa_id]);
+            // Buscar localizações existentes
+            const [existingLocations] = await conn.query('SELECT id, name FROM locations WHERE empresa_id = ?', [empresa_id]);
+            
+            // Criar mapas para facilitar a busca
+            const existingByName = new Map(existingLocations.map(loc => [loc.name, loc]));
+            const newByName = new Map(location_definitions.map(loc => [loc.name, loc]));
+            
+            // Localizações para deletar (existem no banco mas não na nova lista)
+            const toDelete = existingLocations.filter(loc => !newByName.has(loc.name));
+            
+            // Localizações para inserir (existem na nova lista mas não no banco)
+            const toInsert = location_definitions.filter(loc => !existingByName.has(loc.name));
+            
+            // Localizações para manter (existem em ambos)
+            const toKeep = existingLocations.filter(loc => newByName.has(loc.name));
+            
+            // Deletar localizações que não existem mais
+            for (const loc of toDelete) {
+                await conn.query('DELETE FROM locations WHERE id = ?', [loc.id]);
+                // Também deletar registros relacionados em product_locations
+                await conn.query('DELETE FROM product_locations WHERE location_id = ?', [loc.id.toString()]);
+            }
             
             // Inserir novas localizações
-            for (const loc of location_definitions) {
+            for (const loc of toInsert) {
                 if (loc.name && loc.name.trim()) {
-                    await conn.query(
+                    const [result] = await conn.query(
                         'INSERT INTO locations (name, empresa_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
                         [loc.name.trim(), empresa_id]
                     );
+                    
+                    // Se há produtos existentes, criar registros em product_locations para a nova localização
+                    const [products] = await conn.query('SELECT id FROM products WHERE empresa_id = ?', [empresa_id]);
+                    for (const product of products) {
+                        await conn.query(
+                            'INSERT INTO product_locations (product_id, empresa_id, location_id, quantity, created_at, updated_at) VALUES (?, ?, ?, 0, NOW(), NOW())',
+                            [product.id, empresa_id, result.insertId.toString()]
+                        );
+                    }
                 }
             }
         }
+        
+        // Limpar registros órfãos em product_locations (que referenciam localizações deletadas)
+        await conn.query(`
+            DELETE pl FROM product_locations pl 
+            LEFT JOIN locations l ON pl.location_id = l.id 
+            WHERE l.id IS NULL AND pl.empresa_id = ?
+        `, [empresa_id]);
         
         await conn.commit();
         res.json({ message: 'Empresa atualizada com sucesso!' });
@@ -936,8 +1131,12 @@ app.get('/api/dashboard-stats', authenticateToken, async (req, res) => {
 app.get('/api/public/empresa', async (req, res) => {
     try {
         // Assume ID 1 como padrão ou busca a primeira
-        const [[empresa]] = await pool.query('SELECT nome_fantasia, logo_url FROM empresas ORDER BY id LIMIT 1');
+        const [[empresa]] = await pool.query('SELECT nome, logo_url FROM empresas ORDER BY id LIMIT 1');
         if (empresa) {
+            // Verificar se a empresa tem logo, caso contrário usar a logo padrão
+            if (!empresa.logo_url) {
+                empresa.logo_url = '/img/default-logo.svg';
+            }
             res.json(empresa);
         } else {
             res.status(404).json({ message: 'Nenhuma empresa configurada.' });
@@ -954,20 +1153,23 @@ async function getProductDetails(id) {
     const [products] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
     if (!products.length) return null;
     const product = products[0];
-    // Busca localizações do produto
+    
+    // Busca localizações do produto com LEFT JOIN para incluir localizações mesmo se a location foi deletada
     const [locations] = await pool.query(`
         SELECT pl.location_id, pl.quantity, pl.sub_location, l.name as location_name
         FROM product_locations pl 
-        JOIN locations l ON pl.location_id = l.id 
+        LEFT JOIN locations l ON pl.location_id = l.id 
         WHERE pl.product_id = ?
     `, [id]);
+    
     // Converter localizações para o formato locations (array) - compatível com frontend
     const locationsArr = locations.map(loc => ({
         location_id: loc.location_id,
-        name: loc.location_name || 'Sem localização',
+        name: loc.location_name || `Localização ${loc.location_id}`,
         quantity: loc.quantity || 0,
         sub_location: loc.sub_location || ''
     }));
+    
     return {
         id: product.id,
         name: product.name || 'Sem nome',
@@ -1023,39 +1225,41 @@ app.get('/api/usuarios/:id', authenticateToken, async (req, res) => {
 });
 
 // Alias para editar usuário
-app.put('/api/usuarios/:id', authenticateToken, authorizeRole(['diretor']), (req, res) => {
+app.put('/api/usuarios/:id', authenticateToken, authorizeRole(['diretor']), async (req, res) => {
     const { full_name, username, email, role } = req.body;
     const { id } = req.params;
     const empresaId = req.user.empresa_id;
-    pool.query(
-        'UPDATE users SET full_name=?, username=?, email=?, role=? WHERE id=? AND empresa_id=?',
-        [full_name, username, email, role, id, empresaId],
-        (err, result) => {
-            if (err) {
-                console.error('Erro ao editar usuário:', err);
-                return res.status(500).json({ message: 'Erro ao editar usuário.', error: err });
-            }
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ message: 'Usuário não encontrado.' });
-            }
-            logActivity(empresaId, req.user, 'EDITOU_USUARIO', { usuarioId: id, dados: req.body });
-            res.json({ message: 'Usuário atualizado com sucesso!' });
+    try {
+        const [result] = await pool.query(
+            'UPDATE users SET full_name=?, username=?, email=?, role=? WHERE id=? AND empresa_id=?',
+            [full_name, username, email, role, id, empresaId]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
         }
-    );
+        await logActivity(empresaId, req.user, 'ATUALIZAR_USUARIO', { usuarioId: id, dados: req.body });
+        res.json({ message: 'Usuário atualizado com sucesso!' });
+    } catch (err) {
+        console.error('Erro ao editar usuário:', err);
+        res.status(500).json({ message: 'Erro ao editar usuário.', error: err });
+    }
 });
 
 // Alias para deletar usuário
-app.delete('/api/usuarios/:id', authenticateToken, authorizeRole(['diretor']), (req, res) => {
+app.delete('/api/usuarios/:id', authenticateToken, authorizeRole(['diretor']), async (req, res) => {
     const { id } = req.params;
     const empresaId = req.user.empresa_id;
-    pool.query('DELETE FROM users WHERE id=? AND empresa_id=?', [id, empresaId], (err, result) => {
-        if (err) {
-            console.error('Erro ao apagar usuário:', err);
-            return res.status(500).json({ message: 'Erro ao apagar usuário.' });
+    try {
+        const [result] = await pool.query('DELETE FROM users WHERE id=? AND empresa_id=?', [id, empresaId]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
         }
-        logActivity(empresaId, req.user, 'APAGOU_USUARIO', { usuarioId: id });
+        await logActivity(empresaId, req.user, 'EXCLUIR_USUARIO', { usuarioId: id });
         res.json({ message: 'Usuário apagado com sucesso!' });
-    });
+    } catch (err) {
+        console.error('Erro ao apagar usuário:', err);
+        res.status(500).json({ message: 'Erro ao apagar usuário.' });
+    }
 });
 
 // Rota para listar logs da empresa (usando activity_logs)
@@ -1063,11 +1267,8 @@ app.get('/api/logs', authenticateToken, async (req, res) => {
     try {
         const [logs] = await pool.query(
             `SELECT 
-                l.id, l.empresa_id, l.user_id, l.product_id, l.action, l.quantity, l.description, l.created_at, 
-                u.full_name as user_name, p.name as product_name
+                l.id, l.empresa_id, l.user_id, l.user_full_name, l.product_id, l.action, l.details, l.created_at
             FROM activity_logs l
-            LEFT JOIN users u ON l.user_id = u.id
-            LEFT JOIN products p ON l.product_id = p.id
             WHERE l.empresa_id = ?
             ORDER BY l.created_at DESC`,
             [req.user.empresa_id]
@@ -1090,6 +1291,8 @@ app.post('/api/locations', authenticateToken, async (req, res) => {
             'INSERT INTO locations (name, empresa_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
             [name.trim(), empresa_id]
         );
+        // Log de criação de localização
+        await logActivity(empresa_id, req.user, 'CRIAR_LOCALIZACAO', { localizacaoId: result.insertId, nome: name });
         res.status(201).json({ id: result.insertId, name: name.trim(), empresa_id });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -1097,6 +1300,24 @@ app.post('/api/locations', authenticateToken, async (req, res) => {
         }
         console.error('Erro ao criar localização:', error);
         res.status(500).json({ message: 'Erro ao criar localização.' });
+    }
+});
+
+// Exemplo de endpoint para deletar localização (caso não exista)
+app.delete('/api/locations/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const empresa_id = req.user.empresa_id;
+    try {
+        const [result] = await pool.query('DELETE FROM locations WHERE id=? AND empresa_id=?', [id, empresa_id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Localização não encontrada.' });
+        }
+        // Log de exclusão de localização
+        await logActivity(empresa_id, req.user, 'EXCLUIR_LOCALIZACAO', { localizacaoId: id });
+        res.json({ message: 'Localização excluída com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao excluir localização:', error);
+        res.status(500).json({ message: 'Erro ao excluir localização.' });
     }
 });
 
@@ -1222,6 +1443,94 @@ app.post('/api/products/:id/image', authenticateToken, upload.single('image'), a
     }
 });
 
+// --- Rotas de Backup ---
+app.get('/api/backup/status', authenticateToken, authorizeRole(['diretor']), (req, res) => {
+    try {
+        const files = fs.readdirSync(backupDir)
+            .filter(file => file.startsWith(backupConfig.backupPrefix) && file.endsWith('.sql'))
+            .map(file => {
+                const filePath = path.join(backupDir, file);
+                const stats = fs.statSync(filePath);
+                return {
+                    name: file,
+                    size: stats.size,
+                    created: stats.mtime,
+                    sizeFormatted: formatFileSize(stats.size)
+                };
+            })
+            .sort((a, b) => b.created - a.created);
+        
+        res.json({
+            totalBackups: files.length,
+            maxBackups: backupConfig.maxBackups,
+            backupInterval: backupConfig.backupInterval / 1000,
+            backups: files
+        });
+    } catch (error) {
+        console.error('Erro ao buscar status dos backups:', error);
+        res.status(500).json({ message: 'Erro ao buscar status dos backups.' });
+    }
+});
+
+app.post('/api/backup/create', authenticateToken, authorizeRole(['diretor']), async (req, res) => {
+    try {
+        const backupPath = await createDatabaseBackup();
+        // Log de criação de backup
+        await logActivity(req.user.empresa_id, req.user, 'CRIAR_BACKUP', { backupPath });
+        res.json({ 
+            message: 'Backup criado com sucesso!',
+            path: backupPath
+        });
+    } catch (error) {
+        console.error('Erro ao criar backup manual:', error);
+        res.status(500).json({ message: 'Erro ao criar backup.' });
+    }
+});
+
+app.delete('/api/backup/:filename', authenticateToken, authorizeRole(['diretor']), async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const filePath = path.join(backupDir, filename);
+        
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ message: 'Backup não encontrado.' });
+        }
+        
+        fs.unlinkSync(filePath);
+        // Log de exclusão de backup
+        await logActivity(req.user.empresa_id, req.user, 'EXCLUIR_BACKUP', { filename });
+        res.json({ message: 'Backup removido com sucesso!' });
+    } catch (error) {
+        console.error('Erro ao remover backup:', error);
+        res.status(500).json({ message: 'Erro ao remover backup.' });
+    }
+});
+
+app.get('/api/backup/download/:filename', authenticateToken, authorizeRole(['diretor']), (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const filePath = path.join(backupDir, filename);
+        
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ message: 'Backup não encontrado.' });
+        }
+        
+        res.download(filePath, filename);
+    } catch (error) {
+        console.error('Erro ao baixar backup:', error);
+        res.status(500).json({ message: 'Erro ao baixar backup.' });
+    }
+});
+
+// Função auxiliar para formatar tamanho de arquivo
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 // --- Middleware de Tratamento de Erros ---
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -1236,4 +1545,7 @@ app.use((err, req, res, next) => {
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
-}); 
+  
+  // Inicializar sistema de backup automático
+  startAutoBackup();
+});
