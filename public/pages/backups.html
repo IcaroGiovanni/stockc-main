@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backups - StockCtrl</title>
+    <!-- Font Awesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Estilos Principais -->
+    <link rel="stylesheet" href="../css/estoque-moderno.css">
+    <!-- Estilos da Logo (pode ser integrado no principal depois) -->
+    <link rel="stylesheet" href="../css/logo-animada.css">
+    <!-- Importação do TailwindCSS que estava faltando -->
+    <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/lib/index.min.js"></script>
+    <style>
+        .backup-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .backup-card:hover {
+            background: rgba(30, 41, 59, 0.6);
+            border-color: rgba(250, 204, 21, 0.3);
+        }
+        
+        .backup-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .backup-name {
+            font-weight: 600;
+            color: var(--color-accent);
+            font-size: 14px;
+        }
+        
+        .backup-size {
+            color: var(--color-text-secondary);
+            font-size: 12px;
+        }
+        
+        .backup-date {
+            color: var(--color-text-secondary);
+            font-size: 12px;
+        }
+        
+        .backup-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-download {
+            background: var(--color-accent);
+            color: var(--color-accent-text);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-download:hover {
+            background: var(--color-accent-dark);
+            transform: translateY(-1px);
+        }
+        
+        .btn-delete {
+            background: var(--color-error);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-delete:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+        
+        .create-backup-btn {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+            color: var(--color-accent-text);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+        
+        .create-backup-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(250, 204, 21, 0.3);
+        }
+        
+        .create-backup-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .no-backups {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--color-text-secondary);
+        }
+        
+        .no-backups i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Botão Hamburger para Mobile -->
+    <button class="mobile-menu-toggle hidden" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Sidebar (Estrutura existente) -->
+    <aside class="sidebar">
+        <div class="logo-container">
+            <a href="/dashboard" class="logo-link">
+                <span class="logo-sc">SC</span>
+                <span id="company-name-sidebar" class="logo-company-name">STOCKCTRL</span>
+            </a>
+        </div>
+        <nav>
+            <a href="/dashboard"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="/estoque"><i class="fas fa-boxes-stacked"></i> Estoque</a>
+            <a href="/usuarios"><i class="fas fa-users"></i> Usuários</a>
+            <a href="/logs"><i class="fas fa-history"></i> Logs de Atividade</a>
+            <a href="/configuracoes"><i class="fas fa-cog"></i> Configurações</a>
+            <a href="/backups" class="active"><i class="fas fa-database"></i> Backups</a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-profile-widget">
+                <img id="user-avatar" src="" alt="Avatar">
+                <span id="user-name"></span>
+            </div>
+            <a href="#" id="logout-btn" title="Sair"><i class="fas fa-sign-out-alt"></i></a>
+        </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+        <!-- Cabeçalho -->
+        <div class="main-header">
+            <h1 class="premium-title">Sistema de Backups</h1>
+            <div class="backup-info-text">
+                Backups automáticos a cada 1 minuto
+            </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-backups">0</div>
+                <div class="stat-label">Total de Backups</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="max-backups">10</div>
+                <div class="stat-label">Máximo Permitido</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="backup-interval">60s</div>
+                <div class="stat-label">Intervalo</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="last-backup">-</div>
+                <div class="stat-label">Último Backup</div>
+            </div>
+        </div>
+
+        <!-- Botão Criar Backup Manual -->
+        <button class="create-backup-btn" id="create-backup-btn">
+            <i class="fas fa-plus"></i> Criar Backup Manual
+        </button>
+
+        <!-- Lista de Backups -->
+        <div class="glass-panel">
+            <div class="section-header">
+                <h2><i class="fas fa-database"></i> Histórico de Backups</h2>
+            </div>
+            <div id="backups-container">
+                <div class="no-backups">
+                    <i class="fas fa-database"></i>
+                    <h3>Nenhum backup encontrado</h3>
+                    <p>Os backups automáticos aparecerão aqui</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <!-- Overlay de Carregamento -->
+    <div id="loader-overlay" class="hidden">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/layout.js"></script>
+    <script src="../js/backups.js"></script>
+</body>
+</html> 
