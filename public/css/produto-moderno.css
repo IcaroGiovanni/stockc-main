@@ -1,0 +1,120 @@
+/* Ultra moderno: preto + amarelo, glassmorphism, responsivo */
+
+body {
+    background: linear-gradient(135deg, #111 60%, #222 100%);
+    min-height: 100vh;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    color: #fff;
+    margin: 0;
+    padding: 0;
+}
+
+.main-container {
+    max-width: 600px;
+    margin: 48px auto;
+    background: rgba(20,20,20,0.85);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.45);
+    padding: 32px 24px;
+    backdrop-filter: blur(8px);
+}
+
+.product-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.product-title {
+    font-family: 'Orbitron', 'Inter', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #FFD600;
+    letter-spacing: 1px;
+    margin: 0;
+    text-shadow: 0 2px 16px #000a;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #FFD600;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.section-header i {
+    color: #FFD600;
+    font-size: 1.2em;
+}
+
+.locations-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.location-card {
+    background: rgba(30,30,30,0.95);
+    border: 2px solid #FFD600;
+    border-radius: 16px;
+    padding: 1.2rem 1.5rem;
+    box-shadow: 0 2px 16px 0 #0005;
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.location-card:hover {
+    transform: translateY(-2px) scale(1.025);
+    box-shadow: 0 6px 32px 0 #FFD60044;
+}
+
+.location-header {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.location-name {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #fff;
+    letter-spacing: 0.5px;
+}
+
+.location-quantity {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #FFD600;
+    background: #222;
+    padding: 0.3em 1em;
+    border-radius: 8px;
+    box-shadow: 0 1px 8px #FFD60022;
+}
+
+@media (max-width: 600px) {
+    .main-container {
+        padding: 16px 4px;
+    }
+    .product-title {
+        font-size: 1.5rem;
+    }
+    .location-card {
+        padding: 0.8rem 0.7rem;
+    }
+    .location-header {
+        gap: 1rem;
+    }
+}
